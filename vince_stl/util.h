@@ -10,7 +10,7 @@ namespace vince {
 
 template <class T>
 typename std::remove_reference<T>::type&& move( T&& t ) noexcept {
-    return static_cast<std::remove_reference<T>::type>( t );
+    return static_cast<std::remove_reference<T>::type&&>( t );
 }
 
 // forward
@@ -84,8 +84,9 @@ struct pair {
 
     template <std::enable_if_t<CheckArgs::template is_pair_constructible<T1 const&, T2 const&>(), int> = 0>
     explicit( !CheckArgs::template is_implicit<T1 const&, T2 const&>() ) constexpr pair(
-        T1 const& t1, T2 const& t2 ) noexcept( std::is_nothrow_copy_constructible_v<T1>
-                                               && std::is_nothrow_copy_constructible_v<T2> ) {}
+        T1 const& t1,
+        T2 const& t2 ) noexcept( std::is_nothrow_copy_constructible_v<T1> && std::is_nothrow_copy_constructible_v<T2> )
+        : first( t1 ), second( t2 ) {}
 
     template <class U1, class U2, std::enable_if_t<CheckArgs::template is_pair_constructible<U1, U2>(), int> = 0>
     explicit( !CheckArgs::template is_implicit<U1, U2>() ) constexpr pair( U1&& u1, U2&& u2 ) noexcept(
