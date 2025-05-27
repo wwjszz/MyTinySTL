@@ -90,7 +90,7 @@ struct pair {
     template <class U1, class U2, std::enable_if_t<CheckArgs::template is_pair_constructible<U1, U2>(), int> = 0>
     explicit( !CheckArgs::template is_implicit<U1, U2>() ) constexpr pair( U1&& u1, U2&& u2 ) noexcept(
         std::is_nothrow_constructible_v<first_type, U1> && std::is_nothrow_constructible_v<second_type, U2> )
-        : first( vince::forward<U1>( u1 ) ), second( forward<U2>( u2 ) ) {}
+        : first( vince::forward<U1>( u1 ) ), second( vince::forward<U2>( u2 ) ) {}
 
     template <class U1, class U2, std::enable_if_t<CheckArgs::template is_pair_constructible<U1, U2>(), int> = 0>
     explicit( !CheckArgs::template is_implicit<U1, U2>() ) constexpr pair( pair<U1, U2> const& p ) noexcept(
