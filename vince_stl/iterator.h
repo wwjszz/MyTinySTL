@@ -64,8 +64,9 @@ template <class Iterator, class Tag, class = void>
 struct iterator_check_helper : public _false_type {};
 
 template <class Iterator, class Tag>
-struct iterator_check_helper<Iterator, Tag,
-                             std::enable_if_t<std::is_convertible_v<typename Iterator::iterator_category, Tag>>>
+struct iterator_check_helper<
+    Iterator, Tag,
+    std::enable_if_t<std::is_convertible_v<typename iterator_traits<Iterator>::iterator_category, Tag>, int>>
     : public _true_type {};
 
 template <class Iterator>
@@ -83,6 +84,21 @@ struct is_bidirectional_iterator : public iterator_check_helper<Iterator, bidire
 template <class Iterator>
 struct is_random_access_iterator : public iterator_check_helper<Iterator, random_access_iterator_tag> {};
 
+template <class Iterator>
+constexpr bool is_input_iteraotr_t = is_input_iterator<Iterator>::value;
+
+template <class Iterator>
+constexpr bool is_output_iterator_t = is_output_iterator<Iterator>::value;
+
+template <class Iterator>
+constexpr bool is_forward_iterator_t = is_forward_iterator<Iterator>::value;
+
+template <class Iterator>
+constexpr bool is_bidirectional_iterator_t = is_bidirectional_iterator<Iterator>::value;
+
+template <class Iterator>
+constexpr bool is_random_access_iterator_t = is_random_access_iterator<Iterator>::value;
+
 // Extracts the various properties of an iterator
 
 template <class Iterator>
@@ -92,7 +108,7 @@ typename iterator_traits<Iterator>::iterator_category iterator_category( const I
 }
 
 template <class Iterator>
-typename iterator_traits<Iterator>::difference_type* difference_type( const Iterator& ) {
+typename iterator_traits<Iterator>::difference_type* distance_type( const Iterator& ) {
     return static_cast<typename iterator_traits<Iterator>::difference_type*>( 0 );
 }
 
