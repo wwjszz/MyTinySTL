@@ -184,6 +184,11 @@ void swap( pair<T1, T2>& x,
 }
 
 // TODO: add make_pair
+template <class T1, class T2>
+inline pair<std::unwrap_ref_decay_t<T1>, std::unwrap_ref_decay_t<T2>> make_pair( T1&& t1, T2&& t2 ) {
+    return pair<std::unwrap_ref_decay_t<T1>, std::unwrap_ref_decay_t<T2>>( vince::forward<T1>( t1 ),
+                                                                           vince::forward<T2>( t2 ) );
+}
 
 };  // namespace vince
 
