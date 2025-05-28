@@ -1,8 +1,10 @@
 #ifndef VINCE_ITERATOR_H__
 #define VINCE_ITERATOR_H__
 
-#include "type_traits.h"
 #include <cstddef>
+#include <type_traits>
+
+#include "type_traits.h"
 
 namespace vince {
 
@@ -85,19 +87,19 @@ template <class Iterator>
 struct is_random_access_iterator : public iterator_check_helper<Iterator, random_access_iterator_tag> {};
 
 template <class Iterator>
-constexpr bool is_input_iteraotr_t = is_input_iterator<Iterator>::value;
+inline constexpr bool is_input_iteraotr_t = is_input_iterator<Iterator>::value;
 
 template <class Iterator>
-constexpr bool is_output_iterator_t = is_output_iterator<Iterator>::value;
+inline constexpr bool is_output_iterator_t = is_output_iterator<Iterator>::value;
 
 template <class Iterator>
-constexpr bool is_forward_iterator_t = is_forward_iterator<Iterator>::value;
+inline constexpr bool is_forward_iterator_t = is_forward_iterator<Iterator>::value;
 
 template <class Iterator>
-constexpr bool is_bidirectional_iterator_t = is_bidirectional_iterator<Iterator>::value;
+inline constexpr bool is_bidirectional_iterator_t = is_bidirectional_iterator<Iterator>::value;
 
 template <class Iterator>
-constexpr bool is_random_access_iterator_t = is_random_access_iterator<Iterator>::value;
+inline constexpr bool is_random_access_iterator_t = is_random_access_iterator<Iterator>::value;
 
 // Extracts the various properties of an iterator
 
