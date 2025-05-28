@@ -133,7 +133,8 @@ inline T* copy_backward( T* first, T* last, T* result ) {
 
 // copy_if
 
-template <class InputIterator, class OutputIterator, class Predicate>
+template <class InputIterator, class OutputIterator, class Predicate,
+          std::enable_if_t<is_input_iteraotr_t<InputIterator>, int> = 0>
 inline OutputIterator copy_if( InputIterator first, InputIterator last, OutputIterator result, Predicate pred ) {
     for ( ; first != last; ++first ) {
         if ( pred( *first ) ) {
@@ -166,6 +167,69 @@ template <class InputIterator, class Size, class OutputIterator,
 inline OutputIterator copy_n( InputIterator first, Size n, OutputIterator result ) {
     typedef typename iterator_traits<InputIterator>::difference_type difference_type;
     return copy( first, first + difference_type( n ), result );
+}
+
+// move
+
+template <class InputIterator, class OutputIterator, class Distance,
+          std::enable_if_t<is_input_iteraotr_t<InputIterator>, int> = 0>
+inline OutputIterator __move( InputIterator first, InputIterator last, OutputIterator result, input_iterator_tag,
+                              Distance* ) {
+    for ( ; first != last; ++first, ++result )
+        *result = vince::move( *first );
+    return result;
+}
+
+template <class InputIterator, class OutputIterator, class Distance,
+          std::enable_if_t<is_input_iteraotr_t<InputIterator>, int> = 0>
+inline OutputIterator __move( InputIterator first, InputIterator last, OutputIterator result,
+                              random_access_iterator_tag, Distance* ) {
+    for ( Distance n = last - first; n > 0; --n ) {
+        *result = vince::move( *first );
+        ++first;
+        ++result;
+    }
+    return result;
+}
+
+template <class T>
+inline T* __move( T* first, T* last, T* result ) {
+    memmove( result, first, sizeof( T ) * ( last - first ) );
+    return result + ( last - first );
+}
+
+template <class InputIterator, class OutputIterator, std::enable_if_t<is_input_iteraotr_t<InputIterator>, int> = 0>
+inline OutputIterator move( InputIterator first, InputIterator last, OutputIterator result ) {
+    return __move( first, last, result, iterator_category( first ), distance_type( first ) );
+}
+
+template <class T>
+inline T* move( T* first, T* last, T* result ) {
+    return __move( first, last, result );
+}
+
+// equal
+
+struct equal_to {
+    template <class T1, class T2>
+    constexpr bool operator()( const T1& x, const T2& y ) const {
+        return x == y;
+    }
+};
+
+template <class InputIterator1, class InputIterator2, class Pred,
+          std::enable_if_t<vince::is_satisfied_v<is_input_iterator, InputIterator1, InputIterator2>, int> = 0>
+inline bool equal( InputIterator1 first1, InputIterator1 last1, InputIterator1 first2, Pred pred ) {
+    for ( ; first1 != last1; ++first1, ++first2 )
+        if ( !pred( first1, first2 ) )
+            return false;
+    return true;
+}
+
+template <class InputIterator1, class InputIterator2,
+          std::enable_if_t<vince::is_satisfied_v<is_input_iterator, InputIterator1, InputIterator2>, int> = 0>
+inline bool equal( InputIterator1 first1, InputIterator1 last1, InputIterator1 first2 ) {
+    return vince::equal( first1, last1, first2, equal_to() );
 }
 
 }  // namespace vince
