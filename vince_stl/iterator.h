@@ -87,7 +87,7 @@ template <class Iterator>
 struct is_random_access_iterator : public iterator_check_helper<Iterator, random_access_iterator_tag> {};
 
 template <class Iterator>
-inline constexpr bool is_input_iteraotr_t = is_input_iterator<Iterator>::value;
+inline constexpr bool is_input_iterator_t = is_input_iterator<Iterator>::value;
 
 template <class Iterator>
 inline constexpr bool is_output_iterator_t = is_output_iterator<Iterator>::value;
@@ -100,6 +100,10 @@ inline constexpr bool is_bidirectional_iterator_t = is_bidirectional_iterator<It
 
 template <class Iterator>
 inline constexpr bool is_random_access_iterator_t = is_random_access_iterator<Iterator>::value;
+
+template <class Iterator>
+inline constexpr bool is_value_trivially_copy_assignable_v =
+    std::is_trivially_copy_assignable_v<std::remove_reference_t<decltype( *std::declval<Iterator>() )>>;
 
 // Extracts the various properties of an iterator
 
