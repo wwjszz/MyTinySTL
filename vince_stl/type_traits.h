@@ -30,17 +30,30 @@ struct is_pair<T1, T2> : _true_type {};
 /// is_satisfies
 
 template <template <class> class Pred, class Arg, class... Args>
-struct satisfies {
-    static constexpr bool value = Pred<Arg>::value && satisfies<Pred, Args...>::value;
+struct satisfies_and {
+    static constexpr bool value = Pred<Arg>::value && satisfies_and<Pred, Args...>::value;
 };
 
 template <template <class> class Pred, class Arg>
-struct satisfies<Pred, Arg> {
+struct satisfies_and<Pred, Arg> {
+    static constexpr bool value = Pred<Arg>::value;
+};
+
+template <template <class> class Pred, class Arg, class... Args>
+struct satisfies_or {
+    static constexpr bool value = Pred<Arg>::value && satisfies_or<Pred, Args...>::value;
+};
+
+template <template <class> class Pred, class Arg>
+struct satisfies_or<Pred, Arg> {
     static constexpr bool value = Pred<Arg>::value;
 };
 
 template <template <class> class Pred, class... Args>
-inline constexpr bool is_satisfied_v = satisfies<Pred, Args...>::value;
+inline constexpr bool is_satisfied_and_v = satisfies_and<Pred, Args...>::value;
+
+template <template <class> class Pred, class... Args>
+inline constexpr bool is_satisfied_or_v = satisfies_or<Pred, Args...>::value;
 
 template <class Dp, class Bp>
 inline constexpr bool is_derived_from_v =
