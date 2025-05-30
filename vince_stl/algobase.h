@@ -243,30 +243,6 @@ inline constexpr OutputIterator move( InputIterator first, InputIterator last, O
     return __move_aux( first, last, result );
 }
 
-// equal
-
-struct equal_to {
-    template <class T1, class T2>
-    constexpr bool operator()( const T1& x, const T2& y ) const {
-        return x == y;
-    }
-};
-
-template <class InputIterator1, class InputIterator2, class Pred,
-          std::enable_if_t<vince::is_satisfied_v<is_input_iterator, InputIterator1, InputIterator2>, int> = 0>
-inline constexpr bool equal( InputIterator1 first1, InputIterator1 last1, InputIterator1 first2, Pred pred ) {
-    for ( ; first1 != last1; ++first1, ++first2 )
-        if ( !pred( first1, first2 ) )
-            return false;
-    return true;
-}
-
-template <class InputIterator1, class InputIterator2,
-          std::enable_if_t<vince::is_satisfied_v<is_input_iterator, InputIterator1, InputIterator2>, int> = 0>
-inline constexpr bool equal( InputIterator1 first1, InputIterator1 last1, InputIterator1 first2 ) {
-    return vince::equal( first1, last1, first2, equal_to() );
-}
-
 // move_backward
 
 template <class InputIterator, class OutputIterator, class Distance,
@@ -316,6 +292,130 @@ __move_backward_aux( Tp const* first, Tp const* last, Tp* result ) {
 template <class InputIterator, class OutputIterator>
 inline constexpr OutputIterator move_backward( InputIterator first, InputIterator last, OutputIterator result ) {
     return __move_backward_aux( first, last, result );
+}
+
+// fill_n
+
+template <class OutputIterator, class Size, class Tp, class = void>
+inline constexpr OutputIterator __fill_n( OutputIterator first, Size n, const Tp& value ) {
+    for ( ; n > 0; ++first, --n )
+        *first = value;
+    return first;
+}
+
+template <class Tp, class Size, class Up>
+inline constexpr std::enable_if_t<sizeof( Up ) == 1 && sizeof( Tp ) == 1
+                                      && std::is_integral_v<Tp> && std::is_integral_v<Up> && !std::is_same_v<Tp, bool>,
+                                  Tp*>
+__fill_n( Tp* first, Size n, const Up& value ) {
+    std::memset( first, value, n );
+    return first + n;
+}
+
+template <class OutputIterator, class Size, class Tp>
+inline constexpr OutputIterator fill_n( OutputIterator first, Size n, const Tp& value ) {
+    return __fill_n( first, n, value );
+}
+
+// fill
+
+template <class InputIterator, class Tp>
+inline constexpr void __fill( InputIterator first, InputIterator last, const Tp& value, forward_iteartor_tag ) {
+    for ( ; first != last; ++first )
+        *first = value;
+}
+
+template <class InputIterator, class Tp>
+inline constexpr void __fill( InputIterator first, InputIterator last, const Tp& value, random_access_iterator_tag ) {
+    fill_n( first, last - first, value );
+}
+
+template <class InputIterator, class Tp>
+inline constexpr void fill( InputIterator first, InputIterator last, const Tp& value ) {
+    __fill( first, last, value, typename iterator_traits<InputIterator>::iterator_category() );
+}
+
+// equal
+
+struct equal_to {
+    template <class T1, class T2>
+    constexpr bool operator()( const T1& x, const T2& y ) const {
+        return x == y;
+    }
+};
+
+template <class InputIterator1, class InputIterator2, class Pred>
+inline constexpr bool equal( InputIterator1 first1, InputIterator1 last1, InputIterator1 first2, Pred pred ) {
+    for ( ; first1 != last1; ++first1, ++first2 )
+        if ( !pred( *first1, *first2 ) )
+            return false;
+    return true;
+}
+
+template <class InputIterator1, class InputIterator2>
+inline constexpr bool equal( InputIterator1 first1, InputIterator1 last1, InputIterator1 first2 ) {
+    return vince::equal( first1, last1, first2, equal_to() );
+}
+
+// mismatch
+
+template <class InputIterator1, class InputIterator2, class Pred>
+inline constexpr auto mismatch( InputIterator1 first1, InputIterator1 last1, InputIterator1 first2, Pred pred ) {
+    while ( first1 != last1 && pred( *first1, *first2 ) ) {
+        ++first1;
+        ++first2;
+    }
+    return pair<InputIterator1, InputIterator2>( first1, first2 );
+}
+
+template <class InputIterator1, class InputIterator2>
+inline constexpr pair<InputIterator1, InputIterator2> mismatch( InputIterator1 first1, InputIterator1 last1,
+                                                                InputIterator1 first2 ) {
+    return vince::mismatch( first1, last1, first2, equal_to() );
+}
+
+// lexicographical_compare
+
+struct less {
+    template <class T1, class T2>
+    constexpr bool operator()( const T1& x, const T2& y ) const {
+        return x == y;
+    }
+};
+
+template <class InputIterator1, class InputIterator2, class Comp>
+inline constexpr bool lexicographical_compare( InputIterator1 first1, InputIterator1 last1, InputIterator2 first2,
+                                               InputIterator2 last2, Comp comp ) {
+
+    for ( ; first2 != last2; ++first1, ++first2 ) {
+        if ( first1 == last1 || comp( *first1, *first2 ) )
+            return true;
+        if ( comp( *first2, *first1 ) )
+            return false;
+    }
+    return false;
+};
+
+template <class InputIterator1, class InputIterator2, class Comp>
+inline constexpr bool lexicographical_compare( InputIterator1 first1, InputIterator1 last1, InputIterator2 first2,
+                                               InputIterator2 last2 ) {
+
+    return lexicographical_compare( first1, last1, first2, last2, less() );
+};
+
+inline bool lexicographical_compare( const unsigned char* first1, const unsigned char* last1,
+                                     const unsigned char* first2, const unsigned char* last2 ) {
+    const size_t len1   = last1 - first1;
+    const size_t len2   = last2 - first2;
+    const auto   result = std::memcmp( first1, first2, min( len1, len2 ) );
+    return result != 0 ? result < 0 : len1 < len2;
+}
+
+inline bool lexicographical_compare( unsigned char* first1, unsigned char* last1, unsigned char* first2,
+                                     unsigned char* last2 ) {
+    return lexicographical_compare(
+        static_cast<const unsigned char*>( first1 ), static_cast<const unsigned char*>( last1 ),
+        static_cast<const unsigned char*>( first2 ), static_cast<const unsigned char*>( last2 ) );
 }
 
 }  // namespace vince
