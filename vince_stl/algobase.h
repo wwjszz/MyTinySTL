@@ -1,6 +1,7 @@
 #ifndef VINCE_ALGOBASE_H__
 #define VINCE_ALGOBASE_H__
 
+#include <cstring>
 #include <type_traits>
 
 #include "iterator.h"
@@ -75,14 +76,19 @@ inline constexpr OutputIterator __copy( InputIterator first, InputIterator last,
 
 template <class Tp>
 inline Tp* __copy_trivial( Tp const* first, Tp const* last, Tp* result ) {
-    memmove( result, first, sizeof( Tp ) * ( last - first ) );
+    std::memmove( result, first, sizeof( Tp ) * ( last - first ) );
     return result + ( last - first );
 }
 
-template <class InputIterator, class OutputIterator,
-          std::enable_if_t<vince::is_satisfied_v<is_input_iterator, InputIterator, OutputIterator>, int> = 0>
+template <class InputIterator, class OutputIterator>
 inline constexpr OutputIterator __copy_aux( InputIterator first, InputIterator last, OutputIterator result ) {
     return __copy( first, last, result, iterator_category( first ), distance_type( first ) );
+}
+
+template <class Tp>
+inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*> __copy_aux( Tp* first, Tp* last,
+                                                                                            Tp* result ) {
+    return __copy_trivial( first, last, result );
 }
 
 template <class Tp>
@@ -121,13 +127,19 @@ inline Tp* __copy_backward_trivial( Tp const* first, Tp const* last, Tp* result 
     const size_t n = last - first;
     result -= n;
 
-    memmove( result, first, sizeof( Tp ) * n );
+    std::memmove( result, first, sizeof( Tp ) * n );
     return result;
 }
 
 template <class InputIterator, class OutputIterator>
 inline constexpr OutputIterator __copy_backward_aux( InputIterator first, InputIterator last, OutputIterator result ) {
     return __copy_backward( first, last, result, iterator_category( first ), distance_type( first ) );
+}
+
+template <class Tp>
+inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*>
+__copy_backward_aux( Tp* first, Tp* last, Tp* result ) {
+    return __copy_backward_trivial( first, last, result );
 }
 
 template <class Tp>
@@ -205,13 +217,19 @@ inline constexpr OutputIterator __move( InputIterator first, InputIterator last,
 
 template <class Tp>
 inline Tp* __move_trivial( Tp const* first, Tp const* last, Tp* result ) {
-    memmove( result, first, sizeof( Tp ) * ( last - first ) );
+    std::memmove( result, first, sizeof( Tp ) * ( last - first ) );
     return result + ( last - first );
 }
 
 template <class InputIterator, class OutputIterator>
 inline constexpr OutputIterator __move_aux( InputIterator first, InputIterator last, OutputIterator result ) {
     return __move( first, last, result, iterator_category( first ), distance_type( first ) );
+}
+
+template <class Tp>
+inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*> __move_aux( Tp* first, Tp* last,
+                                                                                            Tp* result ) {
+    return __move_trivial( first, last, result );
 }
 
 template <class Tp>
@@ -274,13 +292,19 @@ inline Tp* __move_backward_trivial( Tp const* first, Tp const* last, Tp* result 
     const size_t n = last - first;
     result -= n;
 
-    memmove( result, first, sizeof( Tp ) * n );
+    std::memmove( result, first, sizeof( Tp ) * n );
     return result;
 }
 
 template <class InputIterator, class OutputIterator>
 inline constexpr OutputIterator __move_backward_aux( InputIterator first, InputIterator last, OutputIterator result ) {
     return __move_backward( first, last, result, iterator_category( first ), distance_type( first ) );
+}
+
+template <class Tp>
+inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*>
+__move_backward_aux( Tp* first, Tp* last, Tp* result ) {
+    return __move_backward_trivial( first, last, result );
 }
 
 template <class Tp>
