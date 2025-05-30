@@ -1,6 +1,7 @@
 #ifndef VINCE_ITERATOR_H__
 #define VINCE_ITERATOR_H__
 
+#include "type_traits.h"
 #include <cstddef>
 #include <type_traits>
 
@@ -65,13 +66,19 @@ struct iterator_traits<const T*> {
 
 template <class Iterator, class Tag>
 struct iterator_check_helper
-    : std::bool_constant<std::is_convertible_v<typename iterator_traits<Iterator>::iterator_category, Tag>> {};
+    : std::bool_constant<is_derived_from_v<typename iterator_traits<Iterator>::iterator_category, Tag>> {};
+
+template <class Tag>
+struct output_iterator_check_helper {};
 
 template <class Iterator>
 struct is_input_iterator : public iterator_check_helper<Iterator, input_iterator_tag> {};
 
 template <class Iterator>
-struct is_output_iterator : public iterator_check_helper<Iterator, output_iterator_tag> {};
+struct is_output_iterator
+    : public std::bool_constant<
+          is_derived_from_v<typename iterator_traits<Iterator>::iterator_category, output_iterator_tag>
+          && is_derived_from_v<typename iterator_traits<Iterator>::iterator_category, forward_iteartor_tag>> {};
 
 template <class Iterator>
 struct is_forward_iterator : public iterator_check_helper<Iterator, forward_iteartor_tag> {};
