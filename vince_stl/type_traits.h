@@ -42,6 +42,10 @@ struct satisfies<Pred, Arg> {
 template <template <class> class Pred, class... Args>
 inline constexpr bool is_satisfied_v = satisfies<Pred, Args...>::value;
 
+template <class Dp, class Bp>
+inline constexpr bool is_derived_from_v =
+    std::is_base_of_v<Bp, Dp> && std::is_convertible_v<const volatile Dp*, const volatile Bp*>;
+
 }  // namespace vince
 
 #endif
