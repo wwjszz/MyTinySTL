@@ -68,9 +68,6 @@ template <class Iterator, class Tag>
 struct iterator_check_helper
     : std::bool_constant<is_derived_from_v<typename iterator_traits<Iterator>::iterator_category, Tag>> {};
 
-template <class Tag>
-struct output_iterator_check_helper {};
-
 template <class Iterator>
 struct is_input_iterator : public iterator_check_helper<Iterator, input_iterator_tag> {};
 
