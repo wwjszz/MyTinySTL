@@ -4,8 +4,6 @@
 #include <cstddef>
 #include <type_traits>
 
-#include "type_traits.h"
-
 namespace vince {
 
 // Iterator types
@@ -18,7 +16,7 @@ struct random_access_iterator_tag : public bidirectional_iterator_tag {};
 // Iterator template
 template <class Category, class T, class Distance = ptrdiff_t, class Pointer = T*, class Reference = T&>
 struct iterator {
-    typedef Category  iterator_categoty;
+    typedef Category  iterator_category;
     typedef T         value_type;
     typedef Pointer   pointer;
     typedef Reference reference;
@@ -27,11 +25,11 @@ struct iterator {
 
 // Iterator traits: performed only if the iterator defines iterator_category
 
-template <class Iterator, class = void>
+template <class Iterator, bool>
 struct iterator_traits_impl {};
 
 template <class Iterator>
-struct iterator_traits_impl<Iterator, typename Iterator::iterator_category> {
+struct iterator_traits_impl<Iterator, true> {
     typedef typename Iterator::iterator_category iterator_category;
     typedef typename Iterator::value_type        value_type;
     typedef typename Iterator::pointer           pointer;
@@ -40,11 +38,14 @@ struct iterator_traits_impl<Iterator, typename Iterator::iterator_category> {
 };
 
 template <class Iterator>
-struct iterator_traits : public iterator_traits_impl<Iterator> {};
+struct iterator_traits
+    : public iterator_traits_impl<
+          Iterator, std::is_convertible_v<typename Iterator::iterator_category, input_iterator_tag>
+                        || std::is_convertible_v<typename Iterator::iterator_category, output_iterator_tag>> {};
 
 template <class T>
 struct iterator_traits<T*> {
-    typedef random_access_iterator_tag iterator_categoty;
+    typedef random_access_iterator_tag iterator_category;
     typedef T                          value_type;
     typedef T*                         pointer;
     typedef T&                         reference;
@@ -53,7 +54,7 @@ struct iterator_traits<T*> {
 
 template <class T>
 struct iterator_traits<const T*> {
-    typedef random_access_iterator_tag iterator_categoty;
+    typedef random_access_iterator_tag iterator_category;
     typedef T                          value_type;
     typedef const T*                   pointer;
     typedef const T&                   reference;
@@ -62,14 +63,9 @@ struct iterator_traits<const T*> {
 
 // Helper tratis: check if the type is the specific iterator category
 
-template <class Iterator, class Tag, class = void>
-struct iterator_check_helper : public _false_type {};
-
 template <class Iterator, class Tag>
-struct iterator_check_helper<
-    Iterator, Tag,
-    std::enable_if_t<std::is_convertible_v<typename iterator_traits<Iterator>::iterator_category, Tag>, int>>
-    : public _true_type {};
+struct iterator_check_helper
+    : std::bool_constant<std::is_convertible_v<typename iterator_traits<Iterator>::iterator_category, Tag>> {};
 
 template <class Iterator>
 struct is_input_iterator : public iterator_check_helper<Iterator, input_iterator_tag> {};
