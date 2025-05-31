@@ -1,8 +1,7 @@
 #ifndef VINCE_CONSTRUCT_H__
 #define VINCE_CONSTRUCT_H__
 
-#include <memory>
-#include <utility>
+#include "util.h"
 
 namespace vince {
 
@@ -16,7 +15,7 @@ void construct_at( const Tp* p, Args&&... args ) {
 // destroy
 
 template <class Tp>
-void __destroy_at( Tp* p ) {
+void __destroy_at( Tp* p ) noexcept {
     p->~Tp();
 }
 
@@ -37,13 +36,13 @@ ForwardIterator __reverse_destroy( ForwardIterator first, ForwardIterator last )
 }
 
 template <class Tp>
-void destroy_at( Tp* p ) {
+void destroy_at( Tp* p ) noexcept {
     vince::__destroy_at( p );
 }
 
 template <class ForwardIterator>
-void destroy( ForwardIterator first, ForwardIterator last ) {
-    ( void )vince::__destroy( std::move( first ), std::move( last ) );
+void destroy( ForwardIterator first, ForwardIterator last ) noexcept {
+    ( void )vince::__destroy( vince::move( first ), vince::move( last ) );
 }
 
 template <class ForwardIterator, class Size>
