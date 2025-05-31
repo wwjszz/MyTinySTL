@@ -42,7 +42,7 @@ inline swap_result_t<T> swap( T& x, T& y ) noexcept( std::is_nothrow_move_constr
 template <class T, size_t N, std::enable_if_t<std::is_swappable_v<T>, int>>
 inline void swap( T ( &a )[ N ], T ( &b )[ N ] ) noexcept( std::is_nothrow_swappable_v<T> ) {
     for ( size_t i = 0; i != N; ++i ) {
-        vince::swap( a[ i ], b[ i ] );
+        swap( a[ i ], b[ i ] );
     }
 }
 

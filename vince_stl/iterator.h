@@ -145,7 +145,7 @@ typename RandomIterator::difference_type __distance( RandomIterator first, Rando
 
 template <class Iterator>
 typename Iterator::difference_type distance( Iterator first, Iterator last ) {
-    return __distance( first, last, iterator_category( first ) );
+    return vince::__distance( first, last, iterator_category( first ) );
 }
 
 // Move the iterator forward by n steps
@@ -174,7 +174,7 @@ inline void __advance( RandomIterator i, Distance n, random_access_iterator_tag 
 
 template <class Iterator, class Distance>
 inline void advance( Iterator i, Distance n ) {
-    __advance( i, n, iterator_category( i ) );
+    vince::__advance( i, n, iterator_category( i ) );
 }
 
 // Define reverse iterator

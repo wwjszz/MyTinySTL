@@ -82,24 +82,24 @@ inline Tp* __copy_trivial( Tp const* first, Tp const* last, Tp* result ) {
 
 template <class InputIterator, class OutputIterator>
 inline constexpr OutputIterator __copy_aux( InputIterator first, InputIterator last, OutputIterator result ) {
-    return __copy( first, last, result, iterator_category( first ), distance_type( first ) );
+    return vince::__copy( first, last, result, iterator_category( first ), distance_type( first ) );
 }
 
 template <class Tp>
 inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*> __copy_aux( Tp* first, Tp* last,
                                                                                             Tp* result ) {
-    return __copy_trivial( first, last, result );
+    return vince::__copy_trivial( first, last, result );
 }
 
 template <class Tp>
 inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*>
 __copy_aux( Tp const* first, Tp const* last, Tp* result ) {
-    return __copy_trivial( first, last, result );
+    return vince::__copy_trivial( first, last, result );
 }
 
 template <class InputIterator, class OutputIterator>
 inline constexpr OutputIterator copy( InputIterator first, InputIterator last, OutputIterator result ) {
-    return __copy_aux( first, last, result );
+    return vince::__copy_aux( first, last, result );
 }
 
 // copy_backward
@@ -133,24 +133,24 @@ inline Tp* __copy_backward_trivial( Tp const* first, Tp const* last, Tp* result 
 
 template <class InputIterator, class OutputIterator>
 inline constexpr OutputIterator __copy_backward_aux( InputIterator first, InputIterator last, OutputIterator result ) {
-    return __copy_backward( first, last, result, iterator_category( first ), distance_type( first ) );
+    return vince::__copy_backward( first, last, result, iterator_category( first ), distance_type( first ) );
 }
 
 template <class Tp>
 inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*>
 __copy_backward_aux( Tp* first, Tp* last, Tp* result ) {
-    return __copy_backward_trivial( first, last, result );
+    return vince::__copy_backward_trivial( first, last, result );
 }
 
 template <class Tp>
 inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*>
 __copy_backward_aux( Tp const* first, Tp const* last, Tp* result ) {
-    return __copy_backward_trivial( first, last, result );
+    return vince::__copy_backward_trivial( first, last, result );
 }
 
 template <class InputIterator, class OutputIterator>
 inline constexpr OutputIterator copy_backward( InputIterator first, InputIterator last, OutputIterator result ) {
-    return __copy_backward_aux( first, last, result );
+    return vince::__copy_backward_aux( first, last, result );
 }
 
 // copy_if
@@ -189,7 +189,7 @@ template <class InputIterator, class Size, class OutputIterator,
           std::enable_if_t<is_random_access_iterator_t<InputIterator>, int> = 0>
 inline constexpr OutputIterator copy_n( InputIterator first, Size n, OutputIterator result ) {
     typedef typename iterator_traits<InputIterator>::difference_type difference_type;
-    return copy( first, first + difference_type( n ), result );
+    return vince::copy( first, first + difference_type( n ), result );
 }
 
 // move
@@ -223,24 +223,24 @@ inline Tp* __move_trivial( Tp const* first, Tp const* last, Tp* result ) {
 
 template <class InputIterator, class OutputIterator>
 inline constexpr OutputIterator __move_aux( InputIterator first, InputIterator last, OutputIterator result ) {
-    return __move( first, last, result, iterator_category( first ), distance_type( first ) );
+    return vince::__move( first, last, result, iterator_category( first ), distance_type( first ) );
 }
 
 template <class Tp>
 inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*> __move_aux( Tp* first, Tp* last,
                                                                                             Tp* result ) {
-    return __move_trivial( first, last, result );
+    return vince::__move_trivial( first, last, result );
 }
 
 template <class Tp>
 inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*>
 __move_aux( Tp const* first, Tp const* last, Tp* result ) {
-    return __move_trivial( first, last, result );
+    return vince::__move_trivial( first, last, result );
 }
 
 template <class InputIterator, class OutputIterator>
 inline constexpr OutputIterator move( InputIterator first, InputIterator last, OutputIterator result ) {
-    return __move_aux( first, last, result );
+    return vince::__move_aux( first, last, result );
 }
 
 // move_backward
@@ -274,29 +274,29 @@ inline Tp* __move_backward_trivial( Tp const* first, Tp const* last, Tp* result 
 
 template <class InputIterator, class OutputIterator>
 inline constexpr OutputIterator __move_backward_aux( InputIterator first, InputIterator last, OutputIterator result ) {
-    return __move_backward( first, last, result, iterator_category( first ), distance_type( first ) );
+    return vince::__move_backward( first, last, result, iterator_category( first ), distance_type( first ) );
 }
 
 template <class Tp>
 inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*>
 __move_backward_aux( Tp* first, Tp* last, Tp* result ) {
-    return __move_backward_trivial( first, last, result );
+    return vince::__move_backward_trivial( first, last, result );
 }
 
 template <class Tp>
 inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*>
 __move_backward_aux( Tp const* first, Tp const* last, Tp* result ) {
-    return __move_backward_trivial( first, last, result );
+    return vince::__move_backward_trivial( first, last, result );
 }
 
 template <class InputIterator, class OutputIterator>
 inline constexpr OutputIterator move_backward( InputIterator first, InputIterator last, OutputIterator result ) {
-    return __move_backward_aux( first, last, result );
+    return vince::__move_backward_aux( first, last, result );
 }
 
 // fill_n
 
-template <class OutputIterator, class Size, class Tp, class = void>
+template <class OutputIterator, class Size, class Tp>
 inline constexpr OutputIterator __fill_n( OutputIterator first, Size n, const Tp& value ) {
     for ( ; n > 0; ++first, --n )
         *first = value;
@@ -314,7 +314,7 @@ __fill_n( Tp* first, Size n, const Up& value ) {
 
 template <class OutputIterator, class Size, class Tp>
 inline constexpr OutputIterator fill_n( OutputIterator first, Size n, const Tp& value ) {
-    return __fill_n( first, n, value );
+    return vince::__fill_n( first, n, value );
 }
 
 // fill
@@ -327,12 +327,12 @@ inline constexpr void __fill( InputIterator first, InputIterator last, const Tp&
 
 template <class InputIterator, class Tp>
 inline constexpr void __fill( InputIterator first, InputIterator last, const Tp& value, random_access_iterator_tag ) {
-    fill_n( first, last - first, value );
+    vince::fill_n( first, last - first, value );
 }
 
 template <class InputIterator, class Tp>
 inline constexpr void fill( InputIterator first, InputIterator last, const Tp& value ) {
-    __fill( first, last, value, typename iterator_traits<InputIterator>::iterator_category() );
+    vince::__fill( first, last, value, typename iterator_traits<InputIterator>::iterator_category() );
 }
 
 // equal
@@ -400,7 +400,7 @@ template <class InputIterator1, class InputIterator2, class Comp>
 inline constexpr bool lexicographical_compare( InputIterator1 first1, InputIterator1 last1, InputIterator2 first2,
                                                InputIterator2 last2 ) {
 
-    return lexicographical_compare( first1, last1, first2, last2, less() );
+    return vince::lexicographical_compare( first1, last1, first2, last2, vince::less() );
 };
 
 inline bool lexicographical_compare( const unsigned char* first1, const unsigned char* last1,
@@ -413,7 +413,7 @@ inline bool lexicographical_compare( const unsigned char* first1, const unsigned
 
 inline bool lexicographical_compare( unsigned char* first1, unsigned char* last1, unsigned char* first2,
                                      unsigned char* last2 ) {
-    return lexicographical_compare(
+    return vince::lexicographical_compare(
         static_cast<const unsigned char*>( first1 ), static_cast<const unsigned char*>( last1 ),
         static_cast<const unsigned char*>( first2 ), static_cast<const unsigned char*>( last2 ) );
 }
