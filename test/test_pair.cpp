@@ -1,9 +1,9 @@
-#include "../vince_stl/util.h"
+#include "../wyne_stl/util.h"
 #include <iostream>
 #include <string>
 #include <vector>
 
-using namespace vince;
+using namespace wyne;
 
 // 简单的日志宏（可选）
 #define LOG( msg ) std::cout << "[LOG] " << msg << std::endl
@@ -80,7 +80,7 @@ void test_swap() {
 }
 
 void test_make_pair() {
-    auto p = vince::make_pair( 3.14, std::string( "pi" ) );
+    auto p = wyne::make_pair( 3.14, std::string( "pi" ) );
     LOG( "make_pair: (" << p.first << ", " << p.second << ")" );
 }
 
@@ -95,7 +95,7 @@ void test_usage_in_vector() {
 }
 
 int main() {
-    LOG( "=== Testing vince::pair ===" );
+    LOG( "=== Testing wyne::pair ===" );
     test_default_constructor();
     test_copy_constructor();
     test_move_constructor();

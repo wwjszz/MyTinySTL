@@ -1,9 +1,9 @@
-#ifndef VINCE_CONSTRUCT_H__
-#define VINCE_CONSTRUCT_H__
+#ifndef WYNE_CONSTRUCT_H__
+#define WYNE_CONSTRUCT_H__
 
 #include "util.h"
 
-namespace vince {
+namespace wyne {
 
 // construct
 
@@ -22,7 +22,7 @@ void __destroy_at( Tp* p ) noexcept {
 template <class ForwardIterator>
 ForwardIterator __destroy( ForwardIterator first, ForwardIterator last ) {
     for ( ; first != last; ++first )
-        vince::__destroy_at( &*first );
+        wyne::__destroy_at( &*first );
     return first;
 }
 
@@ -30,28 +30,28 @@ template <class ForwardIterator>
 ForwardIterator __reverse_destroy( ForwardIterator first, ForwardIterator last ) {
     while ( last != first ) {
         --last;
-        vince::__destroy_at( &*last );
+        wyne::__destroy_at( &*last );
     }
     return last;
 }
 
 template <class Tp>
 void destroy_at( Tp* p ) noexcept {
-    vince::__destroy_at( p );
+    wyne::__destroy_at( p );
 }
 
 template <class ForwardIterator>
 void destroy( ForwardIterator first, ForwardIterator last ) noexcept {
-    ( void )vince::__destroy( vince::move( first ), vince::move( last ) );
+    ( void )wyne::__destroy( wyne::move( first ), wyne::move( last ) );
 }
 
 template <class ForwardIterator, class Size>
 ForwardIterator destroy_n( ForwardIterator first, Size n ) {
     for ( ; n > 0; ( void )++first, --n )
-        vince::__destroy_at( &*first );
+        wyne::__destroy_at( &*first );
     return first;
 }
 
-}  // namespace vince
+}  // namespace wyne
 
 #endif

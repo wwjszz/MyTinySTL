@@ -1,9 +1,9 @@
-#ifndef VINCE_TYPE_TRAITS_H__
-#define VINCE_TYPE_TRAITS_H__
+#ifndef WYNE_TYPE_TRAITS_H__
+#define WYNE_TYPE_TRAITS_H__
 
 #include <type_traits>
 
-namespace vince {
+namespace wyne {
 
 template <class T, T v>
 struct _integral_constant {
@@ -59,6 +59,6 @@ template <class Dp, class Bp>
 inline constexpr bool is_derived_from_v =
     std::is_base_of_v<Bp, Dp> && std::is_convertible_v<const volatile Dp*, const volatile Bp*>;
 
-}  // namespace vince
+}  // namespace wyne
 
 #endif

@@ -1,10 +1,10 @@
-#ifndef VINCE_UTIL_H__
-#define VINCE_UTIL_H__
+#ifndef WYNE_UTIL_H__
+#define WYNE_UTIL_H__
 
 #include <cstdarg>
 #include <type_traits>
 
-namespace vince {
+namespace wyne {
 
 // move
 
@@ -34,9 +34,9 @@ using swap_result_t = std::enable_if_t<std::is_move_constructible_v<T> && std::i
 template <class T>
 inline swap_result_t<T> swap( T& x, T& y ) noexcept( std::is_nothrow_move_constructible_v<T>
                                                      && std::is_nothrow_move_assignable_v<T> ) {
-    T t( vince::move( x ) );
-    x = vince::move( y );
-    y = vince::move( t );
+    T t( wyne::move( x ) );
+    x = wyne::move( y );
+    y = wyne::move( t );
 }
 
 template <class T, size_t N, std::enable_if_t<std::is_swappable_v<T>, int>>
@@ -91,7 +91,7 @@ struct pair {
     template <class U1, class U2, std::enable_if_t<CheckArgs::template is_pair_constructible<U1, U2>(), int> = 0>
     explicit( !CheckArgs::template is_implicit<U1, U2>() ) constexpr pair( U1&& u1, U2&& u2 ) noexcept(
         std::is_nothrow_constructible_v<first_type, U1> && std::is_nothrow_constructible_v<second_type, U2> )
-        : first( vince::forward<U1>( u1 ) ), second( vince::forward<U2>( u2 ) ) {}
+        : first( wyne::forward<U1>( u1 ) ), second( wyne::forward<U2>( u2 ) ) {}
 
     template <class U1, class U2, std::enable_if_t<CheckArgs::template is_pair_constructible<U1, U2>(), int> = 0>
     explicit( !CheckArgs::template is_implicit<U1, U2>() ) constexpr pair( pair<U1, U2> const& p ) noexcept(
@@ -101,7 +101,7 @@ struct pair {
     template <class U1, class U2, std::enable_if_t<CheckArgs::template is_pair_constructible<U1, U2>(), int> = 0>
     explicit( !CheckArgs::template is_implicit<U1, U2>() ) constexpr pair( pair<U1, U2>&& p ) noexcept(
         std::is_nothrow_constructible_v<first_type, U1&&> && std::is_nothrow_constructible_v<second_type, U2&&> )
-        : first( vince::forward<U1>( p.first ) ), second( forward<U2>( p.second ) ) {}
+        : first( wyne::forward<U1>( p.first ) ), second( forward<U2>( p.second ) ) {}
 
     template <std::enable_if_t<std::is_copy_assignable_v<T1> && std::is_copy_assignable_v<T2>, int> = 0>
     pair& operator=( pair const& p ) noexcept( std::is_nothrow_copy_assignable_v<T1>
@@ -114,8 +114,8 @@ struct pair {
     template <std::enable_if_t<std::is_move_assignable_v<T1> && std::is_move_assignable_v<T2>, int> = 0>
     pair& operator=( pair&& p ) noexcept( std::is_nothrow_move_assignable_v<T1>
                                           && std::is_nothrow_move_assignable_v<T2> ) {
-        first  = vince::forward<T1>( p.first );
-        second = vince::forward<T2>( p.second );
+        first  = wyne::forward<T1>( p.first );
+        second = wyne::forward<T2>( p.second );
         return *this;
     }
 
@@ -135,14 +135,14 @@ struct pair {
         std::enable_if_t<std::is_assignable_v<first_type&, U1> && std::is_assignable_v<second_type&, U2>, int> = 0>
     pair& operator=( pair<U1, U2>&& p ) noexcept( std::is_nothrow_assignable_v<first_type&, U1&&>
                                                   && std::is_nothrow_assignable_v<second_type&, U2&&> ) {
-        first  = vince::forward<U1>( p.first );
-        second = vince::forward<U2>( p.second );
+        first  = wyne::forward<U1>( p.first );
+        second = wyne::forward<U2>( p.second );
         return *this;
     }
 
     void swap( pair& p ) noexcept( std::is_nothrow_swappable_v<first_type>
                                    && std::is_nothrow_swappable_v<second_type> ) {
-        using vince::swap;
+        using wyne::swap;
         swap( first, p.first );
         swap( second, p.second );
     }
@@ -186,10 +186,10 @@ void swap( pair<T1, T2>& x,
 
 template <class T1, class T2>
 inline pair<std::unwrap_ref_decay_t<T1>, std::unwrap_ref_decay_t<T2>> make_pair( T1&& t1, T2&& t2 ) {
-    return pair<std::unwrap_ref_decay_t<T1>, std::unwrap_ref_decay_t<T2>>( vince::forward<T1>( t1 ),
-                                                                           vince::forward<T2>( t2 ) );
+    return pair<std::unwrap_ref_decay_t<T1>, std::unwrap_ref_decay_t<T2>>( wyne::forward<T1>( t1 ),
+                                                                           wyne::forward<T2>( t2 ) );
 }
 
-};  // namespace vince
+};  // namespace wyne
 
 #endif

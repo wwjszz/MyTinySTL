@@ -1,11 +1,11 @@
-#ifndef VINCE_ITERATOR_H__
-#define VINCE_ITERATOR_H__
+#ifndef WYNE_ITERATOR_H__
+#define WYNE_ITERATOR_H__
 
 #include "type_traits.h"
 #include <cstddef>
 #include <type_traits>
 
-namespace vince {
+namespace wyne {
 
 // Iterator types
 struct input_iterator_tag {};
@@ -145,7 +145,7 @@ typename RandomIterator::difference_type __distance( RandomIterator first, Rando
 
 template <class Iterator>
 typename Iterator::difference_type distance( Iterator first, Iterator last ) {
-    return vince::__distance( first, last, iterator_category( first ) );
+    return wyne::__distance( first, last, iterator_category( first ) );
 }
 
 // Move the iterator forward by n steps
@@ -174,7 +174,7 @@ inline void __advance( RandomIterator i, Distance n, random_access_iterator_tag 
 
 template <class Iterator, class Distance>
 inline void advance( Iterator i, Distance n ) {
-    vince::__advance( i, n, iterator_category( i ) );
+    wyne::__advance( i, n, iterator_category( i ) );
 }
 
 // Define reverse iterator
@@ -299,6 +299,6 @@ inline reverse_iterator<Iterator> operator+( typename reverse_iterator<Iterator>
     return reverse_iterator<Iterator>( x.base() - n );
 }
 
-}  // namespace vince
+}  // namespace wyne
 
 #endif

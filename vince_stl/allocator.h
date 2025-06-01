@@ -1,5 +1,5 @@
-#ifndef VINCE_ALLOCATOR_H__
-#define VINCE_ALLOCATOR_H__
+#ifndef WYNE_ALLOCATOR_H__
+#define WYNE_ALLOCATOR_H__
 
 #include <cstddef>
 #include <new>
@@ -8,7 +8,7 @@
 #include "construct.h"
 #include "util.h"
 
-namespace vince {
+namespace wyne {
 
 template <class Tp>
 class allocator {
@@ -37,7 +37,7 @@ public:
 
 template <class Tp>
 Tp* allocator<Tp>::allocate() {
-    if VINCE_LIKELY ( vince::requires_special_alignment<Tp>() ) {
+    if WYNE_LIKELY ( wyne::requires_special_alignment<Tp>() ) {
         return static_cast<Tp*>( ::operator new( sizeof( Tp ), static_cast<std::align_val_t>( alignof( Tp ) ) ) );
     }
     return static_cast<Tp*>( ::operator new( sizeof( Tp ) ) );
@@ -45,7 +45,7 @@ Tp* allocator<Tp>::allocate() {
 
 template <class Tp>
 Tp* allocator<Tp>::allocate( size_type n ) {
-    if VINCE_LIKELY ( vince::requires_special_alignment<Tp>() ) {
+    if WYNE_LIKELY ( wyne::requires_special_alignment<Tp>() ) {
         return static_cast<Tp*>( ::operator new( n * sizeof( Tp ), static_cast<std::align_val_t>( alignof( Tp ) ) ) );
     }
     return static_cast<Tp*>( ::operator new( n * sizeof( Tp ) ) );
@@ -53,7 +53,7 @@ Tp* allocator<Tp>::allocate( size_type n ) {
 
 template <class Tp>
 void allocator<Tp>::deallocate( Tp* ptr ) noexcept {
-    if VINCE_LIKELY ( vince::requires_special_alignment<Tp>() ) {
+    if WYNE_LIKELY ( wyne::requires_special_alignment<Tp>() ) {
         ::operator delete( ptr, static_cast<std::align_val_t>( alignof( Tp ) ) );
         return;
     }
@@ -68,19 +68,19 @@ void allocator<Tp>::deallocate( Tp* ptr, size_type n ) noexcept {
 template <class Tp>
 template <class... Args>
 void allocator<Tp>::construct( Tp* ptr, Args&&... args ) {
-    vince::construct_at( ptr, vince::forward<Args>( args )... );
+    wyne::construct_at( ptr, wyne::forward<Args>( args )... );
 }
 
 template <class Tp>
 void allocator<Tp>::destory( Tp* ptr ) noexcept {
-    vince::destroy_at( ptr );
+    wyne::destroy_at( ptr );
 }
 
 template <class Tp>
 void allocator<Tp>::destory( Tp* first, Tp* last ) {
-    vince::destroy( first, last );
+    wyne::destroy( first, last );
 }
 
-};  // namespace vince
+};  // namespace wyne
 
 #endif
