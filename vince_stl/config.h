@@ -1,10 +1,10 @@
-#ifndef VINCE_CONFIG_H__
-#define VINCE_CONFIG_H__
+#ifndef WYNE_CONFIG_H__
+#define WYNE_CONFIG_H__
 
-#define VINCE_LIKELY( x ) ( __builtin_expect( !!( x ), 1 ) )
-#define VINCE_UNLIKELY( x ) ( __builtin_expect( !!( x ), 0 ) )
+#define WYNE_LIKELY( x ) ( __builtin_expect( !!( x ), 1 ) )
+#define WYNE_UNLIKELY( x ) ( __builtin_expect( !!( x ), 0 ) )
 
-namespace vince {
+namespace wyne {
 
 // new file?
 
@@ -13,5 +13,5 @@ inline constexpr bool requires_special_alignment() {
     return alignof( T ) > __STDCPP_DEFAULT_NEW_ALIGNMENT__;
 }
 
-};  // namespace vince
+};  // namespace wyne
 #endif
