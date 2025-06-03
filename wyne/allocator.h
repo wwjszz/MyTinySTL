@@ -22,21 +22,21 @@ public:
     typedef ptrdiff_t difference_type;
 
 public:
-    static Tp* allocate();
-    static Tp* allocate( size_type n );
+    static constexpr Tp* allocate();
+    static constexpr Tp* allocate( size_type n );
 
-    static void deallocate( Tp* ptr ) noexcept;
-    static void deallocate( Tp* ptr, size_type n ) noexcept;
+    static constexpr void deallocate( Tp* ptr ) noexcept;
+    static constexpr void deallocate( Tp* ptr, size_type n ) noexcept;
 
     template <class... Args>
-    static void construct( Tp* ptr, Args&&... args );
+    static constexpr void construct( Tp* ptr, Args&&... args );
 
-    static void destory( Tp* ptr ) noexcept;
-    static void destory( Tp* first, Tp* last );
+    static constexpr void destory( Tp* ptr ) noexcept;
+    static constexpr void destory( Tp* first, Tp* last );
 };
 
 template <class Tp>
-Tp* allocator<Tp>::allocate() {
+constexpr Tp* allocator<Tp>::allocate() {
     if WYNE_LIKELY ( wyne::requires_special_alignment<Tp>() ) {
         return static_cast<Tp*>( ::operator new( sizeof( Tp ), static_cast<std::align_val_t>( alignof( Tp ) ) ) );
     }
@@ -44,7 +44,7 @@ Tp* allocator<Tp>::allocate() {
 }
 
 template <class Tp>
-Tp* allocator<Tp>::allocate( size_type n ) {
+constexpr Tp* allocator<Tp>::allocate( size_type n ) {
     if WYNE_LIKELY ( wyne::requires_special_alignment<Tp>() ) {
         return static_cast<Tp*>( ::operator new( n * sizeof( Tp ), static_cast<std::align_val_t>( alignof( Tp ) ) ) );
     }
@@ -52,7 +52,7 @@ Tp* allocator<Tp>::allocate( size_type n ) {
 }
 
 template <class Tp>
-void allocator<Tp>::deallocate( Tp* ptr ) noexcept {
+constexpr void allocator<Tp>::deallocate( Tp* ptr ) noexcept {
     if WYNE_LIKELY ( wyne::requires_special_alignment<Tp>() ) {
         ::operator delete( ptr, static_cast<std::align_val_t>( alignof( Tp ) ) );
         return;
@@ -61,23 +61,23 @@ void allocator<Tp>::deallocate( Tp* ptr ) noexcept {
 }
 
 template <class Tp>
-void allocator<Tp>::deallocate( Tp* ptr, size_type n ) noexcept {
+constexpr void allocator<Tp>::deallocate( Tp* ptr, size_type n ) noexcept {
     allocator::deallocate( ptr );
 }
 
 template <class Tp>
 template <class... Args>
-void allocator<Tp>::construct( Tp* ptr, Args&&... args ) {
+constexpr void allocator<Tp>::construct( Tp* ptr, Args&&... args ) {
     wyne::construct_at( ptr, wyne::forward<Args>( args )... );
 }
 
 template <class Tp>
-void allocator<Tp>::destory( Tp* ptr ) noexcept {
+constexpr void allocator<Tp>::destory( Tp* ptr ) noexcept {
     wyne::destroy_at( ptr );
 }
 
 template <class Tp>
-void allocator<Tp>::destory( Tp* first, Tp* last ) {
+constexpr void allocator<Tp>::destory( Tp* first, Tp* last ) {
     wyne::destroy( first, last );
 }
 
