@@ -213,18 +213,14 @@ public:
     explicit reverse_iterator( iterator_type i ) : current( i ) {}
     reverse_iterator( const Self& rhs ) : current( rhs.current ) {}
 
-    iterator_type base() const {
-        return current;
-    }
+    iterator_type base() const { return current; }
 
     value_type& operator*() {
         iterator_type temp = current;
         return *--temp;
     }
 
-    pointer operator->() const {
-        return &( operator*() );
-    }
+    pointer operator->() const { return &( operator*() ); }
 
     Self& operator++() {
         --current;
@@ -248,27 +244,21 @@ public:
         return temp;
     }
 
-    Self operator+( difference_type n ) const {
-        return Self( current - n );
-    }
+    Self operator+( difference_type n ) const { return Self( current - n ); }
 
     Self& operator+=( difference_type n ) {
         current -= n;
         return *this;
     }
 
-    Self operator-( difference_type n ) const {
-        return Self( current + n );
-    }
+    Self operator-( difference_type n ) const { return Self( current + n ); }
 
     Self& operator-=( difference_type n ) {
         current += n;
         return *this;
     }
 
-    reference operator[]( difference_type n ) const {
-        return *( *this + n );
-    }
+    reference operator[]( difference_type n ) const { return *( *this + n ); }
 };
 
 template <class Iterator>

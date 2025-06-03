@@ -42,33 +42,21 @@ private:
     compressed_pair<pointer, allocator_type> end_cap_ =
         compressed_pair<pointer, allocator_type>( nullptr, default_init_tag() );
 
-    constexpr allocator_type& alloc() noexcept {
-        return end_cap_.second();
-    }
+    constexpr allocator_type& alloc() noexcept { return end_cap_.second(); }
 
-    constexpr const allocator_type& alloc() const noexcept {
-        return end_cap_.second();
-    }
+    constexpr const allocator_type& alloc() const noexcept { return end_cap_.second(); }
 
-    constexpr pointer& end_cap() noexcept {
-        return end_cap_.first();
-    }
+    constexpr pointer& end_cap() noexcept { return end_cap_.first(); }
 
-    constexpr const pointer& end_cap() const noexcept {
-        return end_cap_.first();
-    }
+    constexpr const pointer& end_cap() const noexcept { return end_cap_.first(); }
 
-    void throw_length_error() const {
-        throw std::length_error( "vector" );
-    }
+    void throw_length_error() const { throw std::length_error( "vector" ); }
 
     struct ConstructTransaction {
         constexpr explicit ConstructTransaction( vector& v, size_type n ) noexcept
             : v( v ), pos( v.end_ ), new_end( v.end_ + n ) {}
 
-        constexpr ~ConstructTransaction() noexcept {
-            v.end_ = pos;
-        }
+        constexpr ~ConstructTransaction() noexcept { v.end_ = pos; }
 
         vector&             v;
         pointer             pos;

@@ -27,13 +27,9 @@ struct compressed_pair_elem {
                                              std::index_sequence<Indices...> )
         : value_( wyne::forward<Args>( std::get<Indices>( args ) )... ) {}
 
-    reference get() noexcept {
-        return value_;
-    }
+    reference get() noexcept { return value_; }
 
-    const_reference get() const noexcept {
-        return value_;
-    }
+    const_reference get() const noexcept { return value_; }
 
 private:
     Tp value_;
@@ -57,13 +53,9 @@ struct compressed_pair_elem<Tp, Idx, true> : private Tp {
                                              std::index_sequence<Indices...> )
         : value_type( wyne::forward<Args>( std::get<Indices>( args ) )... ) {}
 
-    reference get() noexcept {
-        return *this;
-    }
+    reference get() noexcept { return *this; }
 
-    const_reference get() const noexcept {
-        return *this;
-    }
+    const_reference get() const noexcept { return *this; }
 };
 
 template <class T1, class T2>
@@ -90,29 +82,21 @@ public:
         : Base1( pc, wyne::move( first_args ), std::make_index_sequence<sizeof...( Args1 )>() ),
           Base2( pc, wyne::move( second_args ), std::make_index_sequence<sizeof...( Args2 )>() ) {}
 
-    constexpr typename Base1::reference first() noexcept {
-        return static_cast<Base1&>( *this ).get();
-    }
+    constexpr typename Base1::reference first() noexcept { return static_cast<Base1&>( *this ).get(); }
 
     constexpr typename Base1::const_reference first() const noexcept {
         return static_cast<Base1 const&>( *this ).get();
     }
 
-    constexpr typename Base2::reference second() noexcept {
-        return static_cast<Base2&>( *this ).get();
-    }
+    constexpr typename Base2::reference second() noexcept { return static_cast<Base2&>( *this ).get(); }
 
     constexpr typename Base2::const_reference second() const noexcept {
         return static_cast<Base2 const&>( *this ).get();
     }
 
-    constexpr static Base1* get_first_base( compressed_pair* pair ) noexcept {
-        return static_cast<Base1*>( pair );
-    }
+    constexpr static Base1* get_first_base( compressed_pair* pair ) noexcept { return static_cast<Base1*>( pair ); }
 
-    constexpr static Base2* get_second_base( compressed_pair* pair ) noexcept {
-        return static_cast<Base2*>( pair );
-    }
+    constexpr static Base2* get_second_base( compressed_pair* pair ) noexcept { return static_cast<Base2*>( pair ); }
 
     constexpr void swap( compressed_pair& x ) noexcept( std::is_nothrow_swappable_v<T1>
                                                         && std::is_nothrow_swappable_v<T2> ) {
