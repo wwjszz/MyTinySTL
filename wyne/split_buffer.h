@@ -6,6 +6,8 @@
 
 #include "allocator.h"
 #include "compressed_pair.h"
+#include "uninitialized.h"
+#include "util.h"
 
 namespace wyne {
 
@@ -30,10 +32,106 @@ public:
     using iterator        = pointer;
     using const_iterator  = const_pointer;
 
-    pointer                                  first_;
-    pointer                                  begin_;
-    pointer                                  end_;
-    compressed_pair<pointer, allocator_type> end_cap_;
+    pointer                            first_;
+    pointer                            begin_;
+    pointer                            end_;
+    compressed_pair<pointer, alloc_rr> end_cap_;
+
+    constexpr split_buffer( size_type cap, size_type start, alloc_rr& a ) : end_cap_( nullptr, a ) {
+        if ( cap == 0 ) {
+            first_ = nullptr;
+        }
+        else {
+            first_ = alloc_traits::allocate( alloc(), cap );
+        }
+        begin_ = end_ = first_ + start;
+        end_cap()     = first_ + cap;
+    }
+
+    constexpr ~split_buffer() {
+        clear();
+        alloc_traits::deallocate( alloc(), first_, capacity() );
+    }
+
+    constexpr alloc_rr& alloc() noexcept { return end_cap_.second(); }
+
+    constexpr const alloc_rr& alloc() const noexcept { return end_cap_.second(); }
+
+    constexpr pointer& end_cap() noexcept { return end_cap_.first(); }
+
+    constexpr pointer& end_cap() const noexcept { return end_cap_.first(); }
+
+    const size_type size() const noexcept { return static_cast<size_type>( end_ - begin_ ); }
+
+    const bool empty() const noexcept { return end_ == begin_; }
+
+    const size_type front_spare() const noexcept { return static_cast<size_type>( begin_ - first_ ); }
+
+    const size_type back_spare() const noexcept { return static_cast<size_type>( end_cap() - end_ ); }
+
+    const size_type capacity() const noexcept { return static_cast<size_type>( end_cap() - first_ ); }
+
+    constexpr void clear() {
+        for ( ; begin_ != end_; ++begin_ )
+            alloc_traits::destory( alloc(), std::to_address( begin_ ) );
+    }
+
+    // NOTE: split_buffer is currently only used as the underlying storage for vector.
+    // Therefore, it only provides unchecked emplace operations at the front and back.
+    // These operations assume that there is sufficient space available and do not perform safety checks.
+    template <class... Args>
+    constexpr void unsafe_emplace_back( Args&&... args ) {
+        construct( end_, wyne::forward<Args>( args )... );
+        ++end_;
+    }
+
+    template <class... Args>
+    constexpr void unsafe_emplace_front( Args&&... args ) {
+        construct( begin_ - 1, wyne::forward<Args>( args )... );
+        --begin_;
+    }
+
+    split_buffer( const split_buffer& )            = delete;
+    split_buffer& operator=( const split_buffer& ) = delete;
+
+private:
+    template <class... Args>
+    constexpr void construct( pointer p, Args&&... args ) {
+        alloc_traits::construct( alloc(), std::to_address( p ), wyne::forward<Args>( args )... );
+    }
+
+    constexpr void construct_at_end( size_type n ) {
+        ConstructTransaction ct( &this->end_, n );
+        for ( ; ct.pos != ct.end; ++ct.pos )
+            construct( ct.pos );
+    }
+
+    constexpr void construct_at_end( size_type n, const_reference x ) {
+        ConstructTransaction ct( &this->end_, n );
+        for ( ; ct.pos != ct.end; ++ct.pos )
+            construct( ct.pos, x );
+    }
+
+    template <class InputIterator>
+    constexpr void construct_at_end( InputIterator first, InputIterator last ) {
+        // TODO: use ConstructTrainsaction
+        end_ = wyne::uninitialized_allocator_copy( alloc(), first, last, end_ );
+    }
+
+    struct ConstructTransaction {
+        constexpr explicit ConstructTransaction( pointer* p, size_type n ) noexcept
+            : pos( *p ), end( *p + n ), dest( p ) {}
+
+        constexpr ~ConstructTransaction() noexcept { *dest = pos; }
+        pointer       pos;
+        pointer const end;
+
+        ConstructTransaction( ConstructTransaction const& )            = delete;
+        ConstructTransaction& operator=( ConstructTransaction const& ) = delete;
+
+    private:
+        pointer* dest;
+    };
 };
 
 }  // namespace wyne
