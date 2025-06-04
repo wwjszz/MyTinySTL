@@ -38,7 +38,7 @@ public:
     compressed_pair<pointer, alloc_rr> end_cap_;
 
     constexpr split_buffer( size_type cap, size_type start, alloc_rr& a ) : end_cap_( nullptr, a ) {
-        if ( cap == 0 ) {
+        if WYNE_UNLIKELY ( cap == 0 ) {
             first_ = nullptr;
         }
         else {
