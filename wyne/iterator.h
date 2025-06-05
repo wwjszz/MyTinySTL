@@ -86,6 +86,8 @@ struct is_bidirectional_iterator : public iterator_check_helper<Iterator, bidire
 template <class Iterator>
 struct is_random_access_iterator : public iterator_check_helper<Iterator, random_access_iterator_tag> {};
 
+// TODO: fix: is_input_iterator_t -> _v
+
 template <class Iterator>
 inline constexpr bool is_input_iterator_t = is_input_iterator<Iterator>::value;
 
