@@ -59,6 +59,42 @@ template <class Dp, class Bp>
 inline constexpr bool is_derived_from_v =
     std::is_base_of_v<Bp, Dp> && std::is_convertible_v<const volatile Dp*, const volatile Bp*>;
 
+// conditional
+
+template <bool Bp, class If, class Then>
+struct conditional {
+    using type = If;
+};
+
+template <class If, class Then>
+struct conditional<false, If, Then> {
+    using type = Then;
+};
+
+template <bool Bp, class If, class Then>
+using conditional_t = typename conditional<Bp, If, Then>::type;
+
+// Not
+
+template <class Pred>
+struct Not : _bool_constant<!Pred::value> {};
+
+// first_true
+
+template <class...>
+struct first_true : public _false_type {};
+
+template <class B1, class... Bn>
+struct first_true<B1, Bn...> : conditional_t<static_cast<bool>( B1::value ), B1, first_true<Bn...>> {};
+
+// first_false
+
+template <class...>
+struct first_false : public _true_type {};
+
+template <class B1, class... Bn>
+struct first_false<B1, Bn...> : conditional<static_cast<bool>( B1::value ), first_false<Bn...>, B1> {};
+
 }  // namespace wyne
 
 #endif
