@@ -17,4 +17,5 @@ template <class Tp, bool>
 struct dependent_type : public Tp {};
 
 };  // namespace wyne
+
 #endif
