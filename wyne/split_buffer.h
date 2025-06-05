@@ -59,7 +59,7 @@ public:
 
     constexpr pointer& end_cap() noexcept { return end_cap_.first(); }
 
-    constexpr pointer& end_cap() const noexcept { return end_cap_.first(); }
+    constexpr const pointer& end_cap() const noexcept { return end_cap_.first(); }
 
     const size_type size() const noexcept { return static_cast<size_type>( end_ - begin_ ); }
 
@@ -73,7 +73,7 @@ public:
 
     constexpr void clear() {
         for ( ; begin_ != end_; ++begin_ )
-            alloc_traits::destory( alloc(), std::to_address( begin_ ) );
+            alloc_traits::destroy( alloc(), std::to_address( begin_ ) );
     }
 
     // NOTE: split_buffer is currently only used as the underlying storage for vector.

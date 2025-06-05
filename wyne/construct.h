@@ -8,7 +8,7 @@ namespace wyne {
 // construct
 
 template <class Tp, class... Args>
-constexpr void construct_at( const Tp* p, Args&&... args ) {
+constexpr void construct_at( Tp* p, Args&&... args ) {
     ::new ( static_cast<void*>( p ) ) Tp( std::forward<Args>( args )... );
 }
 
