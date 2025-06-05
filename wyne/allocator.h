@@ -31,8 +31,8 @@ public:
     template <class... Args>
     static constexpr void construct( Tp* ptr, Args&&... args );
 
-    static constexpr void destory( Tp* ptr ) noexcept;
-    static constexpr void destory( Tp* first, Tp* last );
+    static constexpr void destroy( Tp* ptr ) noexcept;
+    static constexpr void destroy( Tp* first, Tp* last );
 };
 
 template <class Tp>
@@ -72,12 +72,12 @@ constexpr void allocator<Tp>::construct( Tp* ptr, Args&&... args ) {
 }
 
 template <class Tp>
-constexpr void allocator<Tp>::destory( Tp* ptr ) noexcept {
+constexpr void allocator<Tp>::destroy( Tp* ptr ) noexcept {
     wyne::destroy_at( ptr );
 }
 
 template <class Tp>
-constexpr void allocator<Tp>::destory( Tp* first, Tp* last ) {
+constexpr void allocator<Tp>::destroy( Tp* first, Tp* last ) {
     wyne::destroy( first, last );
 }
 
