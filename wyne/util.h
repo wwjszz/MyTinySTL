@@ -1,6 +1,7 @@
 #ifndef WYNE_UTIL_H__
 #define WYNE_UTIL_H__
 
+#include "type_traits.h"
 #include <cstdarg>
 #include <type_traits>
 
@@ -9,19 +10,30 @@ namespace wyne {
 // move
 
 template <class T>
-typename std::remove_reference<T>::type&& move( T&& t ) noexcept {
+inline constexpr typename std::remove_reference<T>::type&& move( T&& t ) noexcept {
     return static_cast<std::remove_reference<T>::type&&>( t );
+}
+
+// move_if_noexcept
+
+template <class Tp>
+using move_if_noexcept_result_t =
+    conditional_t<!std::is_nothrow_move_constructible_v<Tp> && std::is_copy_constructible_v<Tp>, const Tp&, Tp&&>;
+
+template <class Tp>
+inline constexpr move_if_noexcept_result_t<Tp> move_if_noexcept( Tp&& x ) noexcept {
+    return wyne::move( x );
 }
 
 // forward
 
 template <class T>
-T&& forward( std::remove_reference_t<T>& t ) noexcept {
+inline constexpr T&& forward( std::remove_reference_t<T>& t ) noexcept {
     return static_cast<T&&>( t );
 }
 
 template <class T>
-T&& forward( std::remove_reference_t<T>&& t ) noexcept {
+inline constexpr T&& forward( std::remove_reference_t<T>&& t ) noexcept {
     static_assert( !std::is_lvalue_reference_v<T>, "cannot forward an rvalue as an lvalue" );
     return static_cast<T&&>( t );
 }
@@ -32,15 +44,15 @@ template <class T>
 using swap_result_t = std::enable_if_t<std::is_move_constructible_v<T> && std::is_move_assignable_v<T>>;
 
 template <class T>
-inline swap_result_t<T> swap( T& x, T& y ) noexcept( std::is_nothrow_move_constructible_v<T>
-                                                     && std::is_nothrow_move_assignable_v<T> ) {
+inline constexpr swap_result_t<T> swap( T& x, T& y ) noexcept( std::is_nothrow_move_constructible_v<T>
+                                                               && std::is_nothrow_move_assignable_v<T> ) {
     T t( wyne::move( x ) );
     x = wyne::move( y );
     y = wyne::move( t );
 }
 
 template <class T, size_t N, std::enable_if_t<std::is_swappable_v<T>, int>>
-inline void swap( T ( &a )[ N ], T ( &b )[ N ] ) noexcept( std::is_nothrow_swappable_v<T> ) {
+inline constexpr void swap( T ( &a )[ N ], T ( &b )[ N ] ) noexcept( std::is_nothrow_swappable_v<T> ) {
     for ( size_t i = 0; i != N; ++i ) {
         swap( a[ i ], b[ i ] );
     }
