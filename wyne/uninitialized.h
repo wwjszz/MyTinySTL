@@ -1,11 +1,17 @@
 #ifndef WYNE_UNINITIALIZED_H__
 #define WYNE_UNINITIALIZED_H__
 
-#include "algobase.h"
-#include "construct.h"
-#include "iterator.h"
+#include <cstring>
 #include <memory>
 #include <type_traits>
+
+#include "algobase.h"
+#include "allocator.h"
+#include "allocator_traits.h"
+#include "construct.h"
+#include "iterator.h"
+#include "type_traits.h"
+#include "util.h"
 
 namespace wyne {
 
@@ -245,6 +251,45 @@ template <class Alloc, class InputIterator, class Size, class ForwardIterator>
 inline constexpr ForwardIterator uninitialized_allocator_copy_n( Alloc& alloc, InputIterator first, Size n,
                                                                  ForwardIterator result ) {
     return wyne::__uninitialized_allocator_copy_n( alloc, wyne::move( first ), wyne::move( n ), wyne::move( result ) );
+}
+
+// uninitialized_destroy
+
+template <class Alloc, class Iter, class Sent>
+constexpr void allocator_destroy( Alloc& alloc, Iter first, Sent last ) {
+    for ( ; first != last; ++first )
+        std::allocator_traits<Alloc>::destroy( alloc, std::to_address( first ) );
+}
+
+// uninitialized_allocator_relocate
+
+template <class Alloc, class Tp>
+struct allocator_has_trivial_move_construct : public Not<std::__has_construct<Alloc, Tp*, Tp&&>> {};
+
+template <class Tp>
+struct allocator_has_trivial_move_construct<allocator<Tp>, Tp> : _true_type {};
+
+template <class Alloc, class Tp>
+struct allocator_has_destroy : public Not<std::__has_destroy<Alloc, Tp*>> {};
+
+template <class Tp, class Up>
+struct allocator_has_destroy<allocator<Tp>, Up> : _true_type {};
+
+template <class Alloc, class Tp>
+constexpr void uninitialized_allocator_relocate( Alloc& alloc, Tp* first, Tp* last, Tp* result ) {
+    if constexpr ( !is_trivially_relocate<Tp>::value && !allocator_has_trivial_move_construct<Alloc, Tp>::value
+                   && !allocator_has_destroy<Alloc, Tp>::value ) {
+        auto iter = first;
+        while ( iter != last ) {
+            std::allocator_traits<Alloc>::construct( alloc, result, wyne::move_if_noexcept( *iter ) );
+            ++iter;
+            ++result;
+        }
+        wyne::allocator_destroy( alloc, first, last );
+    }
+    else {
+        std::memcpy( result, first, sizeof( Tp ) * ( last - first ) );
+    }
 }
 
 };  // namespace wyne
