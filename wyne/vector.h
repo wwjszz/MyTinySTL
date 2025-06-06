@@ -45,13 +45,14 @@ private:
     compressed_pair<pointer, allocator_type> end_cap_ =
         compressed_pair<pointer, allocator_type>( nullptr, default_init_tag() );
 
-    constexpr allocator_type& alloc() noexcept { return end_cap_.second(); }
-
+    constexpr allocator_type&       alloc() noexcept { return end_cap_.second(); }
     constexpr const allocator_type& alloc() const noexcept { return end_cap_.second(); }
+    constexpr pointer&              end_cap() noexcept { return end_cap_.first(); }
+    constexpr const pointer&        end_cap() const noexcept { return end_cap_.first(); }
 
-    constexpr pointer& end_cap() noexcept { return end_cap_.first(); }
+    constexpr iterator make_iter( pointer p ) noexcept { return iterator( p ); }
 
-    constexpr const pointer& end_cap() const noexcept { return end_cap_.first(); }
+    constexpr const_iterator make_iter( const_pointer p ) noexcept { return const_iterator( p ); }
 
     void throw_length_error() const { throw std::length_error( "vector" ); }
 
@@ -77,10 +78,20 @@ private:
         end_cap() = begin_ + n;
     }
 
+    const void vdeallocate() noexcept {
+        if ( begin_ != nullptr ) {
+            clear();
+            alloc_traits::deallocate( alloc(), begin_, capacity() );
+            begin_ = end_ = end_cap() = nullptr;
+        }
+    }
+
     template <class... Args>
     constexpr void construct( pointer p, Args... args ) {
         alloc_traits::construct( alloc(), std::to_address( p ), wyne::forward<Args>( args )... );
     }
+
+    constexpr void destroy( pointer p ) noexcept { alloc_traits::destroy( alloc(), std::to_address( p ) ); }
 
     template <class... Args>
     constexpr void construct_one_at_end( Args&&... args ) {
@@ -110,12 +121,19 @@ private:
         ct.pos = wyne::uninitialized_allocator_copy( alloc(), first, last, ct.pos );
     }
 
+    constexpr void destruct_at_end( pointer new_last ) noexcept {
+        pointer pos = end_;
+        for ( ; pos != new_last; --pos )
+            destroy( pos );
+        end_ = new_last;
+    }
+
     inline constexpr size_type recommend( size_type new_size ) const {
         const size_type ms = max_size();
-        if ( new_size > ms )
+        if WYNE_UNLIKELY ( new_size > ms )
             throw_length_error();
         const size_type cap = capacity();
-        if ( cap >= ( ms >> 1 ) )
+        if WYNE_UNLIKELY ( cap >= ( ms >> 1 ) )
             return ms;
         return wyne::max<size_type>( cap << 1, new_size );
     }
@@ -123,11 +141,27 @@ private:
     constexpr void swap_out_circular_buffer( split_buffer<value_type, allocator_type&>& v_ ) {
         wyne::uninitialized_allocator_relocate( alloc(), std::to_address( begin_ ), std::to_address( end_ ),
                                                 std::to_address( v_.first_ ) );
+        // assert( v_.first_ == ( v_.begin_ - ( end_ - begin_ ) ) );
         end_      = begin_;
         v_.begin_ = v_.first_;
         wyne::swap( this->begin_, v_.begin_ );
         wyne::swap( this->end_, v_.end_ );
         wyne::swap( this->end_cap(), v_.end_cap() );
+        v_.first_ = v_.begin_;
+    }
+
+    template <class InputIterator>
+    constexpr void init_with_sentienl( InputIterator first, InputIterator last ) {
+        for ( ; first != last; ++first )
+            emplace_back( *first );
+    }
+
+    template <class ForwardIterator>
+    constexpr void init_with_size( ForwardIterator first, ForwardIterator last, size_type n ) {
+        if WYNE_LIKELY ( n > 0 ) {
+            vallocate( n );
+            construct_at_end( first, last, n );
+        }
     }
 
 public:
@@ -154,21 +188,81 @@ public:
     constexpr vector( size_type n, const value_type& x, const allocator_type& a )
         : end_cap_( nullptr, a ), vector( n, x ) {}
 
+    template <class InputIterator,
+              std::enable_if_t<
+                  is_exactly_input_iterator_t<InputIterator>
+                      && std::is_constructible_v<value_type, typename iterator_traits<InputIterator>::value_type>,
+                  int> = 0>
+    constexpr vector( InputIterator first, InputIterator last ) {
+        init_with_sentienl( first, last );
+    }
+
+    template <class InputIterator,
+              std::enable_if_t<
+                  is_exactly_input_iterator_t<InputIterator>
+                      && std::is_constructible_v<value_type, typename iterator_traits<InputIterator>::value_type>,
+                  int> = 0>
+    constexpr vector( InputIterator first, InputIterator last, const allocator_type& a ) : end_cap_( nullptr, a ) {
+        init_with_sentienl( first, last );
+    }
+
+    template <class ForwardIterator,
+              std::enable_if_t<
+                  is_forward_iterator_t<ForwardIterator>
+                      && std::is_constructible_v<value_type, typename iterator_traits<ForwardIterator>::value_type>,
+                  int> = 0>
+    constexpr vector( ForwardIterator first, ForwardIterator last ) {
+        size_type n = static_cast<size_type>( wyne::distance( first, last ) );
+        init_with_size( first, last, n );
+    }
+
+    template <class ForwardIterator,
+              std::enable_if_t<
+                  is_forward_iterator_t<ForwardIterator>
+                      && std::is_constructible_v<value_type, typename iterator_traits<ForwardIterator>::value_type>,
+                  int> = 0>
+    constexpr vector( ForwardIterator first, ForwardIterator last, const allocator_type& a ) : end_cap_( nullptr, a ) {
+        size_type n = static_cast<size_type>( wyne::distance( first, last ) );
+        init_with_size( first, last, n );
+    }
+
+    constexpr ~vector() noexcept {
+        if ( begin_ != nullptr ) {
+            clear();
+            alloc_traits::deallocate( alloc(), begin_, capacity() );
+        }
+    }
+
     constexpr size_type max_size() const noexcept {
         return wyne::min<size_type>( alloc_traits::max_size( alloc() ), std::numeric_limits<difference_type>::max() );
     }
 
+    constexpr iterator       begin() noexcept { return make_iter( begin_ ); }
+    constexpr const_iterator begin() const noexcept { return begin(); }
+    constexpr iterator       end() noexcept { return make_iter( end_ ); }
+    constexpr const_iterator end() const noexcept { return end(); }
+
+    constexpr reverse_iterator       rbegin() noexcept { return reverse_iterator( end() ); }
+    constexpr const_reverse_iterator rbegin() const noexcept { return rbegin(); }
+    constexpr reverse_iterator       rend() noexcept { return reverse_iterator( begin() ); }
+    constexpr const_reverse_iterator rend() const noexcept { return rend(); }
+
+    constexpr const_iterator         cbegin() noexcept { return begin(); }
+    constexpr const_iterator         cend() noexcept { return end(); }
+    constexpr const_reverse_iterator crbegin() const noexcept { return rbegin(); }
+    constexpr const_reverse_iterator crend() const noexcept { return rend(); }
+
     constexpr size_type capacity() const noexcept { return static_cast<size_type>( end_cap() - begin_ ); }
-
     constexpr size_type size() const noexcept { return static_cast<size_type>( end_ - begin_ ); }
+    constexpr bool      empty() const noexcept { return end_ == begin_; }
 
-    constexpr bool empty() const noexcept { return end_ == begin_; }
+    constexpr void clear() noexcept { destruct_at_end( begin_ ); }
 
     template <class... Args>
-    inline constexpr pointer emplace_back_slow_path( Args&&... args ) {
+    constexpr pointer emplace_back_slow_path( Args&&... args ) {
         const size_type                           sz = size();
         split_buffer<value_type, allocator_type&> v_( recommend( sz + 1 ), sz, alloc() );
-        construct( v_.begin_, wyne::forward<Args>( args )... );
+        construct( v_.end_, wyne::forward<Args>( args )... );
         ++v_.end_;
         swap_out_circular_buffer( v_ );
         return this->end_;
@@ -187,6 +281,58 @@ public:
         // assert( this->end_ == end_ );
         // this->end_ = end_;
         return *( end_ - 1 );
+    }
+
+    template <class InputIterator,
+              std::enable_if_t<
+                  is_exactly_input_iterator_t<InputIterator>
+                      && std::is_constructible_v<value_type, typename iterator_traits<InputIterator>::value_type>,
+                  int> = 0>
+    constexpr void assign( InputIterator first, InputIterator last ) {
+        clear();
+        for ( ; first != last; ++first )
+            emplace_back( *first );
+    }
+
+    template <class ForwardIterator,
+              std::enable_if_t<
+                  is_forward_iterator_t<ForwardIterator>
+                      && std::is_constructible_v<value_type, typename iterator_traits<ForwardIterator>::value_type>,
+                  int> = 0>
+    constexpr void assign( ForwardIterator first, ForwardIterator last ) {
+        const size_type new_size = static_cast<size_type>( wyne::distance( first, last ) );
+        if ( new_size <= capacity() ) {
+            if ( new_size <= size() ) {
+                pointer m = wyne::copy( first, last, begin_ );
+                destruct_at_end( m );
+            }
+            else {
+                const auto mid = wyne::advance( first, size() );
+                wyne::copy( first, mid, begin_ );
+                construct_at_end( mid, last, new_size - size() );
+            }
+        }
+        else {
+            vdeallocate();
+            vallocate( recommend( new_size ) );
+            construct_at_end( first, last, new_size );
+        }
+    }
+
+    constexpr void assign( size_type n, const_reference x ) {
+        if ( n <= capacity() ) {
+            size_type s = size();
+            wyne::fill_n( begin_, wyne::min( n, s ), x );
+            if ( n <= s )
+                destruct_at_end( begin_ + n );
+            else
+                construct_at_end( n - s, x );
+        }
+        else {
+            vdeallocate();
+            vallocate( recommend( n ) );
+            construct_at_end( n, x );
+        }
     }
 };
 
