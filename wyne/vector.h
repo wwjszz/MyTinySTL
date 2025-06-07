@@ -10,6 +10,7 @@
 
 #include "algobase.h"
 #include "allocator.h"
+#include "assert.h"
 #include "compressed_pair.h"
 #include "config.h"
 #include "iterator.h"
@@ -26,7 +27,7 @@ class vector {
 public:
     using value_type             = Tp;
     using allocator_type         = Allocator;
-    using size_type              = size_t;
+    using size_type              = typename std::allocator_traits<allocator_type>::size_type;
     using difference_type        = ptrdiff_t;
     using reference              = value_type&;
     using const_reference        = const value_type&;
@@ -55,6 +56,8 @@ private:
     constexpr const_iterator make_iter( const_pointer p ) noexcept { return const_iterator( p ); }
 
     void throw_length_error() const { throw std::length_error( "vector" ); }
+
+    void throw_out_of_range() const { throw std::out_of_range( "vector" ); }
 
     struct ConstructTransaction {
         constexpr explicit ConstructTransaction( vector& v, size_type n ) noexcept
@@ -188,20 +191,20 @@ public:
     constexpr vector( size_type n, const value_type& x, const allocator_type& a )
         : end_cap_( nullptr, a ), vector( n, x ) {}
 
-    template <class InputIterator,
-              std::enable_if_t<
-                  is_exactly_input_iterator_t<InputIterator>
-                      && std::is_constructible_v<value_type, typename iterator_traits<InputIterator>::value_type>,
-                  int> = 0>
+    template <
+        class InputIterator,
+        std::enable_if_t<is_exactly_input_iterator_t<InputIterator>
+                             && std::is_constructible_v<value_type, typename iterator_traits<InputIterator>::reference>,
+                         int> = 0>
     constexpr vector( InputIterator first, InputIterator last ) {
         init_with_sentienl( first, last );
     }
 
-    template <class InputIterator,
-              std::enable_if_t<
-                  is_exactly_input_iterator_t<InputIterator>
-                      && std::is_constructible_v<value_type, typename iterator_traits<InputIterator>::value_type>,
-                  int> = 0>
+    template <
+        class InputIterator,
+        std::enable_if_t<is_exactly_input_iterator_t<InputIterator>
+                             && std::is_constructible_v<value_type, typename iterator_traits<InputIterator>::reference>,
+                         int> = 0>
     constexpr vector( InputIterator first, InputIterator last, const allocator_type& a ) : end_cap_( nullptr, a ) {
         init_with_sentienl( first, last );
     }
@@ -224,6 +227,18 @@ public:
     constexpr vector( ForwardIterator first, ForwardIterator last, const allocator_type& a ) : end_cap_( nullptr, a ) {
         size_type n = static_cast<size_type>( wyne::distance( first, last ) );
         init_with_size( first, last, n );
+    }
+
+    constexpr vector( const vector& x )
+        : end_cap_( nullptr, alloc_traits::select_on_container_copy_construction( x.alloc() ) ) {
+        init_with_size( x.begin_, x.end_, x.size() );
+    }
+
+    constexpr vector( vector&& x ) : end_cap_( nullptr, wyne::move( x.alloc() ) ) {
+        begin_     = x.begin_;
+        end_       = x.end_;
+        end_cap_() = x.end_cap();
+        x.begin_ = x.end_ = x.end_cap() = nullptr;
     }
 
     constexpr ~vector() noexcept {
@@ -258,6 +273,76 @@ public:
 
     constexpr void clear() noexcept { destruct_at_end( begin_ ); }
 
+    constexpr void reserve( size_type n ) {
+        if ( n > capacity() ) {
+            if ( n > max_size() )
+                throw_length_error();
+            split_buffer<value_type, allocator_type&> v( n, size(), alloc() );
+            swap_out_circular_buffer( v );
+        }
+    }
+
+    constexpr void shrink_to_fit() noexcept {
+        if ( capacity() > size() ) {
+            try {
+                split_buffer<value_type, allocator_type&> v( size(), size(), alloc() );
+                swap_out_circular_buffer( v );
+            }
+            catch ( ... ) {
+            }
+        }
+    }
+
+    constexpr reference operator[]( size_type n ) noexcept {
+        WYNE_ASSERT_VALID_ELEMENT_ACCESS( n < size(), "message" );
+        return begin_[ n ];
+    }
+
+    constexpr const_reference operator[]( size_type n ) const noexcept {
+        WYNE_ASSERT_VALID_ELEMENT_ACCESS( n < size(), "message" );
+        return begin_[ n ];
+    }
+
+    constexpr reference at( size_type n ) {
+        if ( n > size() )
+            throw_out_of_range();
+        return begin_[ n ];
+    }
+
+    constexpr const_reference at( size_type n ) const {
+        if ( n > size() )
+            throw_out_of_range();
+        return begin_[ n ];
+    }
+
+    constexpr reference front() noexcept {
+        WYNE_ASSERT_VALID_ELEMENT_ACCESS( !empty(), "front() called on an empty vector" );
+        return *begin_;
+    }
+
+    constexpr const_reference front() const noexcept {
+        WYNE_ASSERT_VALID_ELEMENT_ACCESS( !empty(), "front() called on an empty vector" );
+        return *begin_;
+    }
+
+    constexpr reference back() noexcept {
+        WYNE_ASSERT_VALID_ELEMENT_ACCESS( !empty(), "back() called on an empty vector" );
+        return *( end_ - 1 );
+    }
+
+    constexpr const_reference back() const noexcept {
+        WYNE_ASSERT_VALID_ELEMENT_ACCESS( !empty(), "back() called on an empty vector" );
+        return *( end_ - 1 );
+    }
+
+    constexpr value_type* data() noexcept { return std::to_address( begin_ ); }
+
+    constexpr value_type* data() const noexcept { return std::to_address( begin_ ); }
+
+    constexpr void push_back( const_reference x ) { emplace_back( x ); }
+
+    constexpr void push_back( value_type&& x ) { emplace_back( wyne::move( x ) ); }
+
     template <class... Args>
     constexpr pointer emplace_back_slow_path( Args&&... args ) {
         const size_type                           sz = size();
@@ -281,6 +366,11 @@ public:
         // assert( this->end_ == end_ );
         // this->end_ = end_;
         return *( end_ - 1 );
+    }
+
+    constexpr void pop_back() noexcept {
+        WYNE_ASSERT_VALID_ELEMENT_ACCESS( !empty(), "pop_back() called on an empty vector" );
+        destruct_at_end( end_ - 1 );
     }
 
     template <class InputIterator,
