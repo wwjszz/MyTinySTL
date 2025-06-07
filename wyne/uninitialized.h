@@ -188,6 +188,14 @@ inline constexpr ForwardIterator uninitialized_move_n( InputIterator first, Size
     return wyne::__uninitialized_move_n( wyne::move( first ), wyne::move( n ), wyne::move( result ) );
 }
 
+// uninitialized_allocator_destroy
+
+template <class Alloc, class Iter, class Sent>
+constexpr void allocator_destroy( Alloc& alloc, Iter first, Sent last ) {
+    for ( ; first != last; ++first )
+        std::allocator_traits<Alloc>::destroy( alloc, std::to_address( first ) );
+}
+
 // uninitialized_allocator_copy
 
 template <class Alloc, class InputIterator, class ForwardIterator, class = void>
@@ -199,7 +207,7 @@ inline constexpr ForwardIterator __uninitialized_allocator_copy( Alloc& alloc, I
             std::allocator_traits<Alloc>::construct( alloc, std::to_address( cur ), *first );
     }
     catch ( ... ) {
-        std::allocator_traits<Alloc>::destroy( alloc, result, cur );
+        wyne::allocator_destroy( alloc, result, cur );
         throw;
     }
     return cur;
@@ -234,7 +242,7 @@ inline constexpr ForwardIterator __uninitialized_allocator_copy_n( Alloc& alloc,
             std::allocator_traits<Alloc>::construct( alloc, std::to_address( cur ), *first );
     }
     catch ( ... ) {
-        std::allocator_traits<Alloc>::destroy( alloc, result, cur );
+        wyne::allocator_destroy( alloc, result, cur );
         throw;
     }
     return cur;
@@ -251,14 +259,6 @@ template <class Alloc, class InputIterator, class Size, class ForwardIterator>
 inline constexpr ForwardIterator uninitialized_allocator_copy_n( Alloc& alloc, InputIterator first, Size n,
                                                                  ForwardIterator result ) {
     return wyne::__uninitialized_allocator_copy_n( alloc, wyne::move( first ), wyne::move( n ), wyne::move( result ) );
-}
-
-// uninitialized_destroy
-
-template <class Alloc, class Iter, class Sent>
-constexpr void allocator_destroy( Alloc& alloc, Iter first, Sent last ) {
-    for ( ; first != last; ++first )
-        std::allocator_traits<Alloc>::destroy( alloc, std::to_address( first ) );
 }
 
 // uninitialized_allocator_relocate

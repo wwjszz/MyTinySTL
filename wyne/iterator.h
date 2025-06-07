@@ -38,11 +38,14 @@ struct iterator_traits_impl<Iterator, true> {
     typedef typename Iterator::difference_type   difference_type;
 };
 
+template <class Iterator, class = void>
+struct iterator_traits {};
+
 template <class Iterator>
-struct iterator_traits
-    : public iterator_traits_impl<
-          Iterator, std::is_convertible_v<typename Iterator::iterator_category, input_iterator_tag>
-                        || std::is_convertible_v<typename Iterator::iterator_category, output_iterator_tag>> {};
+struct iterator_traits<
+    Iterator, std::enable_if_t<std::is_convertible_v<typename Iterator::iterator_category, input_iterator_tag>
+                               || std::is_convertible_v<typename Iterator::iterator_category, output_iterator_tag>>>
+    : public iterator_traits_impl<Iterator, true> {};
 
 template <class T>
 struct iterator_traits<T*> {
@@ -64,9 +67,13 @@ struct iterator_traits<const T*> {
 
 // Helper tratis: check if the type is the specific iterator category
 
+template <class Iteartor, class Tag, class = void>
+struct iterator_check_helper : _false_type {};
+
 template <class Iterator, class Tag>
-struct iterator_check_helper
-    : std::bool_constant<is_derived_from_v<typename iterator_traits<Iterator>::iterator_category, Tag>> {};
+struct iterator_check_helper<
+    Iterator, Tag, std::enable_if_t<is_derived_from_v<typename iterator_traits<Iterator>::iterator_category, Tag>>>
+    : _true_type {};
 
 template <class Iterator>
 struct is_input_iterator : public iterator_check_helper<Iterator, input_iterator_tag> {};
