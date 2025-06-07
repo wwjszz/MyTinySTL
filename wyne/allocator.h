@@ -13,13 +13,13 @@ namespace wyne {
 template <class Tp>
 class allocator {
 public:
-    typedef Tp        value_type;
-    typedef Tp*       pointer;
-    typedef const Tp* const_pointer;
-    typedef Tp&       reference;
-    typedef const Tp& const_reference;
-    typedef size_t    size_type;
-    typedef ptrdiff_t difference_type;
+    using value_type      = Tp;
+    using pointer         = Tp*;
+    using const_pointer   = const Tp*;
+    using reference       = Tp&;
+    using const_reference = const Tp&;
+    using size_type       = size_t;
+    using difference_type = ptrdiff_t;
 
 public:
     static constexpr Tp* allocate();

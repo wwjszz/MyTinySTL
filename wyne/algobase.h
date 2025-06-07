@@ -188,7 +188,7 @@ inline constexpr OutputIterator copy_n( InputIterator first, Size n, OutputItera
 template <class InputIterator, class Size, class OutputIterator,
           std::enable_if_t<is_random_access_iterator_t<InputIterator>, int> = 0>
 inline constexpr OutputIterator copy_n( InputIterator first, Size n, OutputIterator result ) {
-    typedef typename iterator_traits<InputIterator>::difference_type difference_type;
+    using difference_type = typename iterator_traits<InputIterator>::difference_type;
     return wyne::copy( first, first + difference_type( n ), result );
 }
 

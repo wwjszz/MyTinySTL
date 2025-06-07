@@ -17,11 +17,11 @@ struct random_access_iterator_tag : public bidirectional_iterator_tag {};
 // Iterator template
 template <class Category, class T, class Distance = ptrdiff_t, class Pointer = T*, class Reference = T&>
 struct iterator {
-    typedef Category  iterator_category;
-    typedef T         value_type;
-    typedef Pointer   pointer;
-    typedef Reference reference;
-    typedef Distance  difference_type;
+    using iterator_category = Category;
+    using value_type        = T;
+    using pointer           = Pointer;
+    using reference         = Reference;
+    using difference_type   = Distance;
 };
 
 // Iterator traits: performed only if the iterator defines iterator_category
@@ -31,11 +31,11 @@ struct iterator_traits_impl {};
 
 template <class Iterator>
 struct iterator_traits_impl<Iterator, true> {
-    typedef typename Iterator::iterator_category iterator_category;
-    typedef typename Iterator::value_type        value_type;
-    typedef typename Iterator::pointer           pointer;
-    typedef typename Iterator::reference         reference;
-    typedef typename Iterator::difference_type   difference_type;
+    using iterator_category = typename Iterator::iterator_category;
+    using value_type        = typename Iterator::value_type;
+    using pointer           = typename Iterator::pointer;
+    using reference         = typename Iterator::reference;
+    using difference_type   = typename Iterator::difference_type;
 };
 
 template <class Iterator, class = void>
@@ -49,20 +49,20 @@ struct iterator_traits<
 
 template <class T>
 struct iterator_traits<T*> {
-    typedef random_access_iterator_tag iterator_category;
-    typedef T                          value_type;
-    typedef T*                         pointer;
-    typedef T&                         reference;
-    typedef ptrdiff_t                  difference_type;
+    using iterator_category = random_access_iterator_tag;
+    using value_type        = T;
+    using pointer           = T*;
+    using reference         = T&;
+    using difference_type   = ptrdiff_t;
 };
 
 template <class T>
 struct iterator_traits<const T*> {
-    typedef random_access_iterator_tag iterator_category;
-    typedef T                          value_type;
-    typedef const T*                   pointer;
-    typedef const T&                   reference;
-    typedef ptrdiff_t                  difference_type;
+    using iterator_category = random_access_iterator_tag;
+    using value_type        = T;
+    using pointer           = const T*;
+    using reference         = const T&;
+    using difference_type   = ptrdiff_t;
 };
 
 // Helper tratis: check if the type is the specific iterator category
@@ -132,7 +132,7 @@ inline constexpr bool is_exactly_random_access_iterator_t = is_random_access_ite
 
 template <class Iterator>
 typename iterator_traits<Iterator>::iterator_category iterator_category( const Iterator& ) {
-    typedef typename iterator_traits<Iterator>::iterator_category _Category;
+    using _Category = typename iterator_traits<Iterator>::iterator_category;
     return _Category();
 }
 
@@ -208,14 +208,14 @@ protected:
     Iterator current;
 
 public:
-    typedef typename Iterator::iterator_category iterator_category;
-    typedef typename Iterator::value_type        value_type;
-    typedef typename Iterator::pointer           pointer;
-    typedef typename Iterator::reference         reference;
-    typedef typename Iterator::difference_type   difference_type;
+    using iterator_category = typename iterator_traits<Iterator>::iterator_category;
+    using value_type        = typename iterator_traits<Iterator>::value_type;
+    using pointer           = typename iterator_traits<Iterator>::pointer;
+    using reference         = typename iterator_traits<Iterator>::reference;
+    using difference_type   = typename iterator_traits<Iterator>::difference_type;
 
-    typedef Iterator                   iterator_type;
-    typedef reverse_iterator<Iterator> Self;
+    using iterator_type = Iterator;
+    using Self          = reverse_iterator<Iterator>;
 
 public:
     reverse_iterator() = default;
