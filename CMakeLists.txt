@@ -18,4 +18,5 @@ enable_testing()
 add_executable(algo_test test/algo_test.cpp)
 add_executable(vector_test test/vector_test.cpp)
 
-target_link_libraries(algo_test GTest::GTest GTest::Main)
+target_link_libraries(algo_test  GTest::GTest GTest::Main)
+target_link_libraries(vector_test GTest::GTest GTest::Main)
