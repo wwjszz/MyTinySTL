@@ -42,9 +42,8 @@ template <class Iterator, class = void>
 struct iterator_traits {};
 
 template <class Iterator>
-struct iterator_traits<
-    Iterator, std::enable_if_t<std::is_convertible_v<typename Iterator::iterator_category, input_iterator_tag>
-                               || std::is_convertible_v<typename Iterator::iterator_category, output_iterator_tag>>>
+struct iterator_traits<Iterator, std::enable_if_t<std::is_convertible_v<typename Iterator::iterator_category, input_iterator_tag>
+                                                  || std::is_convertible_v<typename Iterator::iterator_category, output_iterator_tag>>>
     : public iterator_traits_impl<Iterator, true> {};
 
 template <class T>
@@ -71,8 +70,7 @@ template <class Iteartor, class Tag, class = void>
 struct iterator_check_helper : _false_type {};
 
 template <class Iterator, class Tag>
-struct iterator_check_helper<
-    Iterator, Tag, std::enable_if_t<is_derived_from_v<typename iterator_traits<Iterator>::iterator_category, Tag>>>
+struct iterator_check_helper<Iterator, Tag, std::enable_if_t<is_derived_from_v<typename iterator_traits<Iterator>::iterator_category, Tag>>>
     : _true_type {};
 
 template <class Iterator>
@@ -80,9 +78,8 @@ struct is_input_iterator : public iterator_check_helper<Iterator, input_iterator
 
 template <class Iterator>
 struct is_output_iterator
-    : public std::bool_constant<
-          is_derived_from_v<typename iterator_traits<Iterator>::iterator_category, output_iterator_tag>
-          && is_derived_from_v<typename iterator_traits<Iterator>::iterator_category, forward_iteartor_tag>> {};
+    : public std::bool_constant<is_derived_from_v<typename iterator_traits<Iterator>::iterator_category, output_iterator_tag>
+                                && is_derived_from_v<typename iterator_traits<Iterator>::iterator_category, forward_iteartor_tag>> {};
 
 template <class Iterator>
 struct is_forward_iterator : public iterator_check_helper<Iterator, forward_iteartor_tag> {};
@@ -118,15 +115,30 @@ template <class Iterator>
 inline constexpr bool is_exactly_input_iterator_t = is_input_iterator_t<Iterator> && !is_forward_iterator_t<Iterator>;
 
 template <class Iterator>
-inline constexpr bool is_exactly_forward_iterator_t =
-    is_forward_iterator_t<Iterator> && !is_bidirectional_iterator_t<Iterator>;
+inline constexpr bool is_exactly_forward_iterator_t = is_forward_iterator_t<Iterator> && !is_bidirectional_iterator_t<Iterator>;
 
 template <class Iterator>
-inline constexpr bool is_exactly_bidirectional_iterator_t =
-    is_bidirectional_iterator_t<Iterator> && !is_random_access_iterator_t<Iterator>;
+inline constexpr bool is_exactly_bidirectional_iterator_t = is_bidirectional_iterator_t<Iterator> && !is_random_access_iterator_t<Iterator>;
 
 template <class Iterator>
 inline constexpr bool is_exactly_random_access_iterator_t = is_random_access_iterator<Iterator>::value;
+
+// iter_type
+
+template <class Iterator>
+using iter_value_type = typename iterator_traits<Iterator>::value_type;
+
+template <class Iterator>
+using iter_category_type = typename iterator_traits<Iterator>::iterator_category;
+
+template <class Iterator>
+using iter_pointer_type = typename iterator_traits<Iterator>::pointer;
+
+template <class Iterator>
+using iter_diff_t = typename iterator_traits<Iterator>::difference_type;
+
+template <class Iterator>
+using iter_reference = typename iterator_traits<Iterator>::reference;
 
 // Extracts the various properties of an iterator
 
@@ -150,7 +162,7 @@ typename iterator_traits<Iterator>::value_type* value_type( const Iterator& ) {
 
 // For input iterator
 template <class InputIterator>
-typename InputIterator::difference_type __distance( InputIterator first, InputIterator last, input_iterator_tag ) {
+inline constexpr iter_diff_t<InputIterator> __distance( InputIterator first, InputIterator last, input_iterator_tag ) {
     typename InputIterator::difference_type n = 0;
     while ( first != last ) {
         ++first;
@@ -161,27 +173,28 @@ typename InputIterator::difference_type __distance( InputIterator first, InputIt
 
 // For random iterator
 template <class RandomIterator>
-typename RandomIterator::difference_type __distance( RandomIterator first, RandomIterator last,
-                                                     random_access_iterator_tag ) {
+inline constexpr iter_diff_t<RandomIterator> __distance( RandomIterator first, RandomIterator last, random_access_iterator_tag ) {
     return last - first;
 }
 
 template <class Iterator>
-typename Iterator::difference_type distance( Iterator first, Iterator last ) {
+inline constexpr iter_diff_t<Iterator> distance( Iterator first, Iterator last ) {
     return wyne::__distance( first, last, iterator_category( first ) );
 }
 
 // Move the iterator forward by n steps
 
 // For input iterator
+
+// HACK: add check
 template <class InputIterator, class Distance>
-inline void __advance( InputIterator i, Distance n, input_iterator_tag ) {
+inline constexpr void __advance( InputIterator& i, Distance n, input_iterator_tag ) {
     while ( n-- )
         ++i;
 }
 
 template <class BidirectionalIterator, class Distance>
-inline void __advance( BidirectionalIterator i, Distance n, bidirectional_iterator_tag ) {
+inline constexpr void __advance( BidirectionalIterator& i, Distance n, bidirectional_iterator_tag ) {
     if ( n >= 0 )
         while ( n-- )
             ++i;
@@ -191,13 +204,21 @@ inline void __advance( BidirectionalIterator i, Distance n, bidirectional_iterat
 }
 
 template <class RandomIterator, class Distance>
-inline void __advance( RandomIterator i, Distance n, random_access_iterator_tag ) {
+inline constexpr void __advance( RandomIterator& i, Distance n, random_access_iterator_tag ) {
     i += n;
 }
 
 template <class Iterator, class Distance>
-inline void advance( Iterator i, Distance n ) {
+inline constexpr void advance( Iterator& i, Distance n ) {
     wyne::__advance( i, n, iterator_category( i ) );
+}
+
+// next
+
+template <class Iterator, class Distance>
+inline constexpr Iterator next( Iterator i, Distance n ) {
+    wyne::advance( i, n );
+    return i;
 }
 
 // Define reverse iterator
@@ -301,14 +322,12 @@ inline bool operator>=( const reverse_iterator<Iterator>& x, const reverse_itera
 }
 
 template <class Iterator>
-inline typename reverse_iterator<Iterator>::difference_type operator-( const reverse_iterator<Iterator>& x,
-                                                                       const reverse_iterator<Iterator>& y ) {
+inline typename reverse_iterator<Iterator>::difference_type operator-( const reverse_iterator<Iterator>& x, const reverse_iterator<Iterator>& y ) {
     return y.base() - x.base();
 }
 
 template <class Iterator>
-inline reverse_iterator<Iterator> operator+( typename reverse_iterator<Iterator>::difference_type n,
-                                             const reverse_iterator<Iterator>&                    x ) {
+inline reverse_iterator<Iterator> operator+( typename reverse_iterator<Iterator>::difference_type n, const reverse_iterator<Iterator>& x ) {
     return reverse_iterator<Iterator>( x.base() - n );
 }
 

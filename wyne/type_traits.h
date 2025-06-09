@@ -10,11 +10,20 @@ struct _integral_constant {
     static constexpr T value = v;
 };
 
+template <class T, T v>
+using integral_constant = _integral_constant<T, v>;
+
 template <bool b>
 using _bool_constant = _integral_constant<bool, b>;
 
+template <bool b>
+using bool_constant = _bool_constant<b>;
+
 using _true_type  = _bool_constant<true>;
 using _false_type = _bool_constant<false>;
+
+using true_type  = _true_type;
+using false_type = _false_type;
 
 // is_pair
 
