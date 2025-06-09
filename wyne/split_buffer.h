@@ -6,6 +6,7 @@
 
 #include "allocator.h"
 #include "compressed_pair.h"
+#include "memory/swap_allocator.h"
 #include "uninitialized.h"
 #include "util.h"
 
@@ -15,8 +16,7 @@ namespace wyne {
 
 template <class Tp, class Allocator = allocator<Tp>>
 class split_buffer {
-    static_assert( std::is_lvalue_reference<Allocator>::value,
-                   "Allocator must be an lvalue reference as only being used by vector." );
+    static_assert( std::is_lvalue_reference<Allocator>::value, "Allocator must be an lvalue reference as only being used by vector." );
 
 public:
     using value_type      = Tp;
@@ -91,10 +91,13 @@ public:
         --begin_;
     }
 
+    constexpr void push_back( const_reference x ) { unsafe_emplace_back( x ); }
+
+    constexpr void push_back( value_type&& x ) { unsafe_emplace_back( wyne::move( x ) ); }
+
     split_buffer( const split_buffer& )            = delete;
     split_buffer& operator=( const split_buffer& ) = delete;
 
-private:
     template <class... Args>
     constexpr void construct( pointer p, Args&&... args ) {
         alloc_traits::construct( alloc(), std::to_address( p ), wyne::forward<Args>( args )... );
@@ -118,9 +121,31 @@ private:
         end_ = wyne::uninitialized_allocator_copy( alloc(), first, last, end_ );
     }
 
+    template <class ForwardIterator>
+    constexpr void construct_at_end_with_size( ForwardIterator first, size_type n ) {
+        // TODO: use ConstructTrainsaction
+        end_ = wyne::uninitialized_allocator_copy_n( alloc(), first_, n, end_ );
+    }
+
+    template <class InputIterator>
+    constexpr void construct_at_end_with_sentinel( InputIterator first, InputIterator last ) {
+        for ( ; first != last; ++first ) {
+            if ( end_ == end_cap() ) {
+                size_type    old_cap = end_cap() - first;
+                size_type    new_cap = wyne::max<size_type>( old_cap << 1, 8 );
+                split_buffer buf( new_cap, 0, alloc() );
+                for ( pointer p = begin_; p != end_; ++p )
+                    buf.construct_at_end( wyne::move( *p ) );
+
+                swap( buf );
+            }
+            construct( end_, *first );
+            ++end_;
+        }
+    }
+
     struct ConstructTransaction {
-        constexpr explicit ConstructTransaction( pointer* p, size_type n ) noexcept
-            : pos( *p ), end( *p + n ), dest( p ) {}
+        constexpr explicit ConstructTransaction( pointer* p, size_type n ) noexcept : pos( *p ), end( *p + n ), dest( p ) {}
 
         constexpr ~ConstructTransaction() noexcept { *dest = pos; }
         pointer       pos;
@@ -132,6 +157,13 @@ private:
     private:
         pointer* dest;
     };
+
+    constexpr void swap( split_buffer& x ) noexcept {
+        wyne::swap( begin_, x.begin_ );
+        wyne::swap( end_, x.end_ );
+        wyne::swap( end_cap(), x.end_cap() );
+        wyne::swap_allocator( alloc(), x.alloc() );
+    }
 };
 
 }  // namespace wyne

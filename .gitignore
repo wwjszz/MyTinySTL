@@ -12,4 +12,6 @@ CMakeCache.txt
 CTestTestfile.cmake
 bin/
 
+wyne/memory/temp_value.h
+
 Makefile
