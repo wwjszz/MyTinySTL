@@ -21,6 +21,8 @@ COMPILER_MESSAGE( "#undefing macro min" )
 #undef min
 #endif
 
+// TODO: use memcpy instead of memmove
+
 namespace wyne {
 
 // max min
@@ -48,24 +50,22 @@ inline constexpr const T& min( const T& a, const T& b, Comp comp ) {
 // iter_swap
 
 template <class ForwardIterator1, class ForwardIterator2>
-inline constexpr void iter_swap( ForwardIterator1 a, ForwardIterator2 b ) noexcept(
-    noexcept( swap( *std::declval<ForwardIterator1>(), *std::declval<ForwardIterator2>() ) ) ) {
+inline constexpr void iter_swap( ForwardIterator1 a, ForwardIterator2 b ) noexcept( noexcept( swap( *std::declval<ForwardIterator1>(),
+                                                                                                    *std::declval<ForwardIterator2>() ) ) ) {
     swap( *a, *b );
 }
 
 // copy
 
 template <class InputIterator, class OutputIterator, class Distance>
-inline constexpr OutputIterator __copy( InputIterator first, InputIterator last, OutputIterator result,
-                                        input_iterator_tag, Distance* ) {
+inline constexpr OutputIterator __copy( InputIterator first, InputIterator last, OutputIterator result, input_iterator_tag, Distance* ) {
     for ( ; first != last; ++first, ++result )
         *result = *first;
     return result;
 }
 
 template <class InputIterator, class OutputIterator, class Distance>
-inline constexpr OutputIterator __copy( InputIterator first, InputIterator last, OutputIterator result,
-                                        random_access_iterator_tag, Distance* ) {
+inline constexpr OutputIterator __copy( InputIterator first, InputIterator last, OutputIterator result, random_access_iterator_tag, Distance* ) {
     for ( Distance n = last - first; n > 0; --n ) {
         *result = *first;
         ++first;
@@ -86,14 +86,12 @@ inline constexpr OutputIterator __copy_aux( InputIterator first, InputIterator l
 }
 
 template <class Tp>
-inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*> __copy_aux( Tp* first, Tp* last,
-                                                                                            Tp* result ) {
+inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*> __copy_aux( Tp* first, Tp* last, Tp* result ) {
     return wyne::__copy_trivial( first, last, result );
 }
 
 template <class Tp>
-inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*>
-__copy_aux( Tp const* first, Tp const* last, Tp* result ) {
+inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*> __copy_aux( Tp const* first, Tp const* last, Tp* result ) {
     return wyne::__copy_trivial( first, last, result );
 }
 
@@ -104,19 +102,16 @@ inline constexpr OutputIterator copy( InputIterator first, InputIterator last, O
 
 // copy_backward
 
-template <class InputIterator, class OutputIterator, class Distance,
-          std::enable_if_t<is_input_iterator_t<InputIterator>, int> = 0>
-inline constexpr OutputIterator __copy_backward( InputIterator first, InputIterator last, OutputIterator result,
-                                                 input_iterator_tag, Distance* ) {
+template <class InputIterator, class OutputIterator, class Distance, std::enable_if_t<is_input_iterator_t<InputIterator>, int> = 0>
+inline constexpr OutputIterator __copy_backward( InputIterator first, InputIterator last, OutputIterator result, input_iterator_tag, Distance* ) {
     while ( last != first )
         *--result = *--last;
     return result;
 }
 
-template <class InputIterator, class OutputIterator, class Distance,
-          std::enable_if_t<is_input_iterator_t<InputIterator>, int> = 0>
-inline constexpr OutputIterator __copy_backward( InputIterator first, InputIterator last, OutputIterator result,
-                                                 random_access_iterator_tag, Distance* ) {
+template <class InputIterator, class OutputIterator, class Distance, std::enable_if_t<is_input_iterator_t<InputIterator>, int> = 0>
+inline constexpr OutputIterator __copy_backward( InputIterator first, InputIterator last, OutputIterator result, random_access_iterator_tag,
+                                                 Distance* ) {
     for ( Distance n = last - first; n > 0; --n )
         *--result = *--last;
     return result;
@@ -137,14 +132,12 @@ inline constexpr OutputIterator __copy_backward_aux( InputIterator first, InputI
 }
 
 template <class Tp>
-inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*>
-__copy_backward_aux( Tp* first, Tp* last, Tp* result ) {
+inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*> __copy_backward_aux( Tp* first, Tp* last, Tp* result ) {
     return wyne::__copy_backward_trivial( first, last, result );
 }
 
 template <class Tp>
-inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*>
-__copy_backward_aux( Tp const* first, Tp const* last, Tp* result ) {
+inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*> __copy_backward_aux( Tp const* first, Tp const* last, Tp* result ) {
     return wyne::__copy_backward_trivial( first, last, result );
 }
 
@@ -155,10 +148,8 @@ inline constexpr OutputIterator copy_backward( InputIterator first, InputIterato
 
 // copy_if
 
-template <class InputIterator, class OutputIterator, class Predicate,
-          std::enable_if_t<is_input_iterator_t<InputIterator>, int> = 0>
-inline constexpr OutputIterator copy_if( InputIterator first, InputIterator last, OutputIterator result,
-                                         Predicate pred ) {
+template <class InputIterator, class OutputIterator, class Predicate, std::enable_if_t<is_input_iterator_t<InputIterator>, int> = 0>
+inline constexpr OutputIterator copy_if( InputIterator first, InputIterator last, OutputIterator result, Predicate pred ) {
     for ( ; first != last; ++first ) {
         if ( pred( *first ) ) {
             *result = *last;
@@ -185,8 +176,7 @@ inline constexpr OutputIterator copy_n( InputIterator first, Size n, OutputItera
     return result;
 }
 
-template <class InputIterator, class Size, class OutputIterator,
-          std::enable_if_t<is_random_access_iterator_t<InputIterator>, int> = 0>
+template <class InputIterator, class Size, class OutputIterator, std::enable_if_t<is_random_access_iterator_t<InputIterator>, int> = 0>
 inline constexpr OutputIterator copy_n( InputIterator first, Size n, OutputIterator result ) {
     using difference_type = typename iterator_traits<InputIterator>::difference_type;
     return wyne::copy( first, first + difference_type( n ), result );
@@ -194,19 +184,15 @@ inline constexpr OutputIterator copy_n( InputIterator first, Size n, OutputItera
 
 // move
 
-template <class InputIterator, class OutputIterator, class Distance,
-          std::enable_if_t<is_input_iterator_t<InputIterator>, int> = 0>
-inline constexpr OutputIterator __move( InputIterator first, InputIterator last, OutputIterator result,
-                                        input_iterator_tag, Distance* ) {
+template <class InputIterator, class OutputIterator, class Distance, std::enable_if_t<is_input_iterator_t<InputIterator>, int> = 0>
+inline constexpr OutputIterator __move( InputIterator first, InputIterator last, OutputIterator result, input_iterator_tag, Distance* ) {
     for ( ; first != last; ++first, ++result )
         *result = wyne::move( *first );
     return result;
 }
 
-template <class InputIterator, class OutputIterator, class Distance,
-          std::enable_if_t<is_input_iterator_t<InputIterator>, int> = 0>
-inline constexpr OutputIterator __move( InputIterator first, InputIterator last, OutputIterator result,
-                                        random_access_iterator_tag, Distance* ) {
+template <class InputIterator, class OutputIterator, class Distance, std::enable_if_t<is_input_iterator_t<InputIterator>, int> = 0>
+inline constexpr OutputIterator __move( InputIterator first, InputIterator last, OutputIterator result, random_access_iterator_tag, Distance* ) {
     for ( Distance n = last - first; n > 0; --n ) {
         *result = wyne::move( *first );
         ++first;
@@ -227,14 +213,12 @@ inline constexpr OutputIterator __move_aux( InputIterator first, InputIterator l
 }
 
 template <class Tp>
-inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*> __move_aux( Tp* first, Tp* last,
-                                                                                            Tp* result ) {
+inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*> __move_aux( Tp* first, Tp* last, Tp* result ) {
     return wyne::__move_trivial( first, last, result );
 }
 
 template <class Tp>
-inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*>
-__move_aux( Tp const* first, Tp const* last, Tp* result ) {
+inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*> __move_aux( Tp const* first, Tp const* last, Tp* result ) {
     return wyne::__move_trivial( first, last, result );
 }
 
@@ -245,19 +229,16 @@ inline constexpr OutputIterator move( InputIterator first, InputIterator last, O
 
 // move_backward
 
-template <class InputIterator, class OutputIterator, class Distance,
-          std::enable_if_t<is_input_iterator_t<InputIterator>, int> = 0>
-inline constexpr OutputIterator __move_backward( InputIterator first, InputIterator last, OutputIterator result,
-                                                 input_iterator_tag, Distance* ) {
+template <class InputIterator, class OutputIterator, class Distance, std::enable_if_t<is_input_iterator_t<InputIterator>, int> = 0>
+inline constexpr OutputIterator __move_backward( InputIterator first, InputIterator last, OutputIterator result, input_iterator_tag, Distance* ) {
     while ( last != first )
         *--result = wyne::move( *--last );
     return result;
 }
 
-template <class InputIterator, class OutputIterator, class Distance,
-          std::enable_if_t<is_input_iterator_t<InputIterator>, int> = 0>
-inline constexpr OutputIterator __move_backward( InputIterator first, InputIterator last, OutputIterator result,
-                                                 random_access_iterator_tag, Distance* ) {
+template <class InputIterator, class OutputIterator, class Distance, std::enable_if_t<is_input_iterator_t<InputIterator>, int> = 0>
+inline constexpr OutputIterator __move_backward( InputIterator first, InputIterator last, OutputIterator result, random_access_iterator_tag,
+                                                 Distance* ) {
     for ( Distance n = last - first; n > 0; --n )
         *--result = wyne::move( *--last );
     return result;
@@ -278,14 +259,12 @@ inline constexpr OutputIterator __move_backward_aux( InputIterator first, InputI
 }
 
 template <class Tp>
-inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*>
-__move_backward_aux( Tp* first, Tp* last, Tp* result ) {
+inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*> __move_backward_aux( Tp* first, Tp* last, Tp* result ) {
     return wyne::__move_backward_trivial( first, last, result );
 }
 
 template <class Tp>
-inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*>
-__move_backward_aux( Tp const* first, Tp const* last, Tp* result ) {
+inline constexpr std::enable_if_t<std::is_trivially_copy_assignable_v<Tp>, Tp*> __move_backward_aux( Tp const* first, Tp const* last, Tp* result ) {
     return wyne::__move_backward_trivial( first, last, result );
 }
 
@@ -304,9 +283,8 @@ inline constexpr OutputIterator __fill_n( OutputIterator first, Size n, const Tp
 }
 
 template <class Tp, class Size, class Up>
-inline constexpr std::enable_if_t<sizeof( Up ) == 1 && sizeof( Tp ) == 1
-                                      && std::is_integral_v<Tp> && std::is_integral_v<Up> && !std::is_same_v<Tp, bool>,
-                                  Tp*>
+inline constexpr std::enable_if_t<
+    sizeof( Up ) == 1 && sizeof( Tp ) == 1 && std::is_integral_v<Tp> && std::is_integral_v<Up> && !std::is_same_v<Tp, bool>, Tp*>
 __fill_n( Tp* first, Size n, const Up& value ) {
     std::memset( first, value, n );
     return first + n;
@@ -369,8 +347,7 @@ inline constexpr auto mismatch( InputIterator1 first1, InputIterator1 last1, Inp
 }
 
 template <class InputIterator1, class InputIterator2>
-inline constexpr pair<InputIterator1, InputIterator2> mismatch( InputIterator1 first1, InputIterator1 last1,
-                                                                InputIterator1 first2 ) {
+inline constexpr pair<InputIterator1, InputIterator2> mismatch( InputIterator1 first1, InputIterator1 last1, InputIterator1 first2 ) {
     return wyne::mismatch( first1, last1, first2, equal_to() );
 }
 
@@ -384,8 +361,7 @@ struct less {
 };
 
 template <class InputIterator1, class InputIterator2, class Comp>
-inline constexpr bool lexicographical_compare( InputIterator1 first1, InputIterator1 last1, InputIterator2 first2,
-                                               InputIterator2 last2, Comp comp ) {
+inline constexpr bool lexicographical_compare( InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, InputIterator2 last2, Comp comp ) {
 
     for ( ; first2 != last2; ++first1, ++first2 ) {
         if ( first1 == last1 || comp( *first1, *first2 ) )
@@ -397,25 +373,22 @@ inline constexpr bool lexicographical_compare( InputIterator1 first1, InputItera
 };
 
 template <class InputIterator1, class InputIterator2, class Comp>
-inline constexpr bool lexicographical_compare( InputIterator1 first1, InputIterator1 last1, InputIterator2 first2,
-                                               InputIterator2 last2 ) {
+inline constexpr bool lexicographical_compare( InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, InputIterator2 last2 ) {
 
     return wyne::lexicographical_compare( first1, last1, first2, last2, wyne::less() );
 };
 
-inline bool lexicographical_compare( const unsigned char* first1, const unsigned char* last1,
-                                     const unsigned char* first2, const unsigned char* last2 ) {
+inline bool lexicographical_compare( const unsigned char* first1, const unsigned char* last1, const unsigned char* first2,
+                                     const unsigned char* last2 ) {
     const size_t len1   = last1 - first1;
     const size_t len2   = last2 - first2;
     const auto   result = std::memcmp( first1, first2, min( len1, len2 ) );
     return result != 0 ? result < 0 : len1 < len2;
 }
 
-inline bool lexicographical_compare( unsigned char* first1, unsigned char* last1, unsigned char* first2,
-                                     unsigned char* last2 ) {
-    return wyne::lexicographical_compare(
-        static_cast<const unsigned char*>( first1 ), static_cast<const unsigned char*>( last1 ),
-        static_cast<const unsigned char*>( first2 ), static_cast<const unsigned char*>( last2 ) );
+inline bool lexicographical_compare( unsigned char* first1, unsigned char* last1, unsigned char* first2, unsigned char* last2 ) {
+    return wyne::lexicographical_compare( static_cast<const unsigned char*>( first1 ), static_cast<const unsigned char*>( last1 ),
+                                          static_cast<const unsigned char*>( first2 ), static_cast<const unsigned char*>( last2 ) );
 }
 
 }  // namespace wyne
