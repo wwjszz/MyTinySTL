@@ -323,7 +323,7 @@ struct equal_to {
 };
 
 template <class InputIterator1, class InputIterator2, class Pred>
-inline constexpr bool equal( InputIterator1 first1, InputIterator1 last1, InputIterator1 first2, Pred pred ) {
+inline constexpr bool equal( InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, Pred pred ) {
     for ( ; first1 != last1; ++first1, ++first2 )
         if ( !pred( *first1, *first2 ) )
             return false;
@@ -331,14 +331,14 @@ inline constexpr bool equal( InputIterator1 first1, InputIterator1 last1, InputI
 }
 
 template <class InputIterator1, class InputIterator2>
-inline constexpr bool equal( InputIterator1 first1, InputIterator1 last1, InputIterator1 first2 ) {
+inline constexpr bool equal( InputIterator1 first1, InputIterator1 last1, InputIterator2 first2 ) {
     return wyne::equal( first1, last1, first2, equal_to() );
 }
 
 // mismatch
 
 template <class InputIterator1, class InputIterator2, class Pred>
-inline constexpr auto mismatch( InputIterator1 first1, InputIterator1 last1, InputIterator1 first2, Pred pred ) {
+inline constexpr auto mismatch( InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, Pred pred ) {
     while ( first1 != last1 && pred( *first1, *first2 ) ) {
         ++first1;
         ++first2;
@@ -347,7 +347,7 @@ inline constexpr auto mismatch( InputIterator1 first1, InputIterator1 last1, Inp
 }
 
 template <class InputIterator1, class InputIterator2>
-inline constexpr pair<InputIterator1, InputIterator2> mismatch( InputIterator1 first1, InputIterator1 last1, InputIterator1 first2 ) {
+inline constexpr pair<InputIterator1, InputIterator2> mismatch( InputIterator1 first1, InputIterator1 last1, InputIterator2 first2 ) {
     return wyne::mismatch( first1, last1, first2, equal_to() );
 }
 

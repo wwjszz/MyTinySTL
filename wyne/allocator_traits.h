@@ -13,7 +13,7 @@ template <class _Tp, class = void>
 struct is_trivially_relocate : _bool_constant<__is_trivially_relocatable( _Tp )> {};
 #else
 template <class _Tp, class = void>
-struct is_trivially_relocate : is_trivially_copyable<_Tp> {};
+struct is_trivially_relocate : std::is_trivially_copyable<_Tp> {};
 #endif
 
 template <class _Tp>

@@ -84,7 +84,7 @@ private:
         end_cap() = begin_ + n;
     }
 
-    const void vdeallocate() noexcept {
+    void vdeallocate() noexcept {
         if ( begin_ != nullptr ) {
             clear();
             alloc_traits::deallocate( alloc(), begin_, capacity() );
@@ -325,7 +325,7 @@ private:
     }
 
 public:
-    constexpr vector() noexcept( std::is_nothrow_default_constructible_v<allocator_type> ) {}
+    constexpr vector() noexcept( std::is_nothrow_default_constructible_v<allocator_type> ) = default;
 
     constexpr explicit vector( const allocator_type& a ) noexcept : end_cap_( nullptr, a ) {}
 
@@ -336,7 +336,12 @@ public:
         }
     }
 
-    constexpr explicit vector( size_type n, const allocator_type& a ) : end_cap_( nullptr, a ), vector( n ) {}
+    constexpr explicit vector( size_type n, const allocator_type& a ) : end_cap_( nullptr, a ) {
+        if WYNE_LIKELY ( n > 0 ) {
+            vallocate( n );
+            construct_at_end( n );
+        }
+    }
 
     constexpr vector( size_type n, const value_type& x ) {
         if WYNE_LIKELY ( n > 0 ) {
@@ -345,7 +350,12 @@ public:
         }
     }
 
-    constexpr vector( size_type n, const value_type& x, const allocator_type& a ) : end_cap_( nullptr, a ), vector( n, x ) {}
+    constexpr vector( size_type n, const value_type& x, const allocator_type& a ) : end_cap_( nullptr, a ) {
+        if WYNE_LIKELY ( n > 0 ) {
+            vallocate( n );
+            construct_at_end( n, x );
+        }
+    }
 
     template <class InputIterator, std::enable_if_t<is_exactly_input_iterator_t<InputIterator>
                                                         && std::is_constructible_v<value_type, typename iterator_traits<InputIterator>::reference>,
@@ -366,7 +376,7 @@ public:
                                    && std::is_constructible_v<value_type, typename iterator_traits<ForwardIterator>::value_type>,
                                int> = 0>
     constexpr vector( ForwardIterator first, ForwardIterator last ) {
-        size_type n = static_cast<size_type>( wyne::distance( first, last ) );
+        auto n = static_cast<size_type>( wyne::distance( first, last ) );
         init_with_size( first, last, n );
     }
 
@@ -375,7 +385,7 @@ public:
                                    && std::is_constructible_v<value_type, typename iterator_traits<ForwardIterator>::value_type>,
                                int> = 0>
     constexpr vector( ForwardIterator first, ForwardIterator last, const allocator_type& a ) : end_cap_( nullptr, a ) {
-        size_type n = static_cast<size_type>( wyne::distance( first, last ) );
+        auto n = static_cast<size_type>( wyne::distance( first, last ) );
         init_with_size( first, last, n );
     }
 
@@ -443,9 +453,9 @@ public:
     constexpr const_reverse_iterator crbegin() const noexcept { return rbegin(); }
     constexpr const_reverse_iterator crend() const noexcept { return rend(); }
 
-    constexpr size_type capacity() const noexcept { return static_cast<size_type>( end_cap() - begin_ ); }
-    constexpr size_type size() const noexcept { return static_cast<size_type>( end_ - begin_ ); }
-    constexpr bool      empty() const noexcept { return end_ == begin_; }
+    constexpr size_type          capacity() const noexcept { return static_cast<size_type>( end_cap() - begin_ ); }
+    constexpr size_type          size() const noexcept { return static_cast<size_type>( end_ - begin_ ); }
+    [[nodiscard]] constexpr bool empty() const noexcept { return end_ == begin_; }
 
     constexpr void clear() noexcept { destruct_at_end( begin_ ); }
 
@@ -592,7 +602,7 @@ public:
                                    && std::is_constructible_v<value_type, typename iterator_traits<ForwardIterator>::value_type>,
                                int> = 0>
     constexpr void assign( ForwardIterator first, ForwardIterator last ) {
-        const size_type new_size = static_cast<size_type>( wyne::distance( first, last ) );
+        const auto new_size = static_cast<size_type>( wyne::distance( first, last ) );
         if ( new_size <= capacity() ) {
             if ( new_size <= size() ) {
                 pointer m = wyne::copy( first, last, begin_ );

@@ -16,7 +16,7 @@ namespace wyne {
 
 template <class Tp, class Allocator = allocator<Tp>>
 class split_buffer {
-    static_assert( std::is_lvalue_reference<Allocator>::value, "Allocator must be an lvalue reference as only being used by vector." );
+    static_assert( std::is_lvalue_reference_v<Allocator>, "Allocator must be an lvalue reference as only being used by vector." );
 
 public:
     using value_type      = Tp;
@@ -61,15 +61,15 @@ public:
 
     constexpr const pointer& end_cap() const noexcept { return end_cap_.first(); }
 
-    const size_type size() const noexcept { return static_cast<size_type>( end_ - begin_ ); }
+     size_type size() const noexcept { return static_cast<size_type>( end_ - begin_ ); }
 
-    const bool empty() const noexcept { return end_ == begin_; }
+     [[nodiscard]] bool empty() const noexcept { return end_ == begin_; }
 
-    const size_type front_spare() const noexcept { return static_cast<size_type>( begin_ - first_ ); }
+     size_type front_spare() const noexcept { return static_cast<size_type>( begin_ - first_ ); }
 
-    const size_type back_spare() const noexcept { return static_cast<size_type>( end_cap() - end_ ); }
+     size_type back_spare() const noexcept { return static_cast<size_type>( end_cap() - end_ ); }
 
-    const size_type capacity() const noexcept { return static_cast<size_type>( end_cap() - first_ ); }
+     size_type capacity() const noexcept { return static_cast<size_type>( end_cap() - first_ ); }
 
     constexpr void clear() {
         for ( ; begin_ != end_; ++begin_ )
