@@ -3,16 +3,25 @@
 
 #include "type_traits.h"
 #include <cstddef>
+#include <iterator>
 #include <type_traits>
 
 namespace wyne {
 
 // Iterator types
-struct input_iterator_tag {};
-struct output_iterator_tag {};
-struct forward_iteartor_tag : public input_iterator_tag {};
-struct bidirectional_iterator_tag : public forward_iteartor_tag {};
-struct random_access_iterator_tag : public bidirectional_iterator_tag {};
+
+// TODO: use wyne
+using input_iterator_tag         = std::input_iterator_tag;
+using output_iterator_tag        = std::output_iterator_tag;
+using forward_iterator_tag       = std::forward_iterator_tag;
+using bidirectional_iterator_tag = std::bidirectional_iterator_tag;
+using random_access_iterator_tag = std::random_access_iterator_tag;
+
+// struct input_iterator_tag {};
+// struct output_iterator_tag {};
+// struct forward_iterator_tag : public input_iterator_tag {};
+// struct bidirectional_iterator_tag : public forward_iterator_tag {};
+// struct random_access_iterator_tag : public bidirectional_iterator_tag {};
 
 // Iterator template
 template <class Category, class T, class Distance = ptrdiff_t, class Pointer = T*, class Reference = T&>
@@ -79,10 +88,10 @@ struct is_input_iterator : public iterator_check_helper<Iterator, input_iterator
 template <class Iterator>
 struct is_output_iterator
     : public std::bool_constant<is_derived_from_v<typename iterator_traits<Iterator>::iterator_category, output_iterator_tag>
-                                && is_derived_from_v<typename iterator_traits<Iterator>::iterator_category, forward_iteartor_tag>> {};
+                                && is_derived_from_v<typename iterator_traits<Iterator>::iterator_category, forward_iterator_tag>> {};
 
 template <class Iterator>
-struct is_forward_iterator : public iterator_check_helper<Iterator, forward_iteartor_tag> {};
+struct is_forward_iterator : public iterator_check_helper<Iterator, forward_iterator_tag> {};
 
 template <class Iterator>
 struct is_bidirectional_iterator : public iterator_check_helper<Iterator, bidirectional_iterator_tag> {};
@@ -245,7 +254,7 @@ public:
 
     iterator_type base() const { return current; }
 
-    value_type& operator*() {
+    reference operator*() const {
         iterator_type temp = current;
         return *--temp;
     }

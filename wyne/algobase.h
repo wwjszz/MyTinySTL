@@ -298,7 +298,7 @@ inline constexpr OutputIterator fill_n( OutputIterator first, Size n, const Tp& 
 // fill
 
 template <class InputIterator, class Tp>
-inline constexpr void __fill( InputIterator first, InputIterator last, const Tp& value, forward_iteartor_tag ) {
+inline constexpr void __fill( InputIterator first, InputIterator last, const Tp& value, forward_iterator_tag ) {
     for ( ; first != last; ++first )
         *first = value;
 }
@@ -356,7 +356,7 @@ inline constexpr pair<InputIterator1, InputIterator2> mismatch( InputIterator1 f
 struct less {
     template <class T1, class T2>
     constexpr bool operator()( const T1& x, const T2& y ) const {
-        return x == y;
+        return x < y;
     }
 };
 
@@ -372,7 +372,7 @@ inline constexpr bool lexicographical_compare( InputIterator1 first1, InputItera
     return false;
 };
 
-template <class InputIterator1, class InputIterator2, class Comp>
+template <class InputIterator1, class InputIterator2>
 inline constexpr bool lexicographical_compare( InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, InputIterator2 last2 ) {
 
     return wyne::lexicographical_compare( first1, last1, first2, last2, wyne::less() );

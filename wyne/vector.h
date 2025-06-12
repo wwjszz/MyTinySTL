@@ -18,7 +18,7 @@
 #include "compressed_pair.h"
 #include "config.h"
 #include "iterator.h"
-#include "split_buffer.h"
+#include "memory/split_buffer.h"
 #include "type_traits.h"
 #include "uninitialized.h"
 #include "util.h"
@@ -57,7 +57,7 @@ private:
 
     constexpr iterator make_iter( pointer p ) noexcept { return iterator( p ); }
 
-    constexpr const_iterator make_iter( const_pointer p ) noexcept { return const_iterator( p ); }
+    constexpr const_iterator make_iter( const_pointer p ) const noexcept { return const_iterator( p ); }
 
     void throw_length_error() const { throw std::length_error( "vector" ); }
 
@@ -93,7 +93,7 @@ private:
     }
 
     template <class... Args>
-    constexpr void construct( pointer p, Args... args ) {
+    constexpr void construct( pointer p, Args&&... args ) {
         alloc_traits::construct( alloc(), std::to_address( p ), wyne::forward<Args>( args )... );
     }
 
@@ -129,8 +129,8 @@ private:
 
     constexpr void destruct_at_end( pointer new_last ) noexcept {
         pointer pos = end_;
-        for ( ; pos != new_last; --pos )
-            destroy( pos );
+        while ( pos != new_last )
+            destroy( --pos );
         end_ = new_last;
     }
 
@@ -155,7 +155,7 @@ private:
         v_.first_ = v_.begin_;
     }
 
-    constexpr void swap_out_circular_buffer( split_buffer<value_type, allocator_type&>& v, pointer p ) {
+    constexpr pointer swap_out_circular_buffer( split_buffer<value_type, allocator_type&>& v, pointer p ) {
         pointer ret = v.begin_;
 
         // relocate [p, end_)
@@ -171,8 +171,9 @@ private:
 
         wyne::swap( begin_, v.begin_ );
         wyne::swap( end_, v.end_ );
-        wyne::swap( end_cap_, v.end_cap() );
+        wyne::swap( end_cap(), v.end_cap() );
         v.first_ = v.begin_;
+        return ret;
     }
 
     template <class InputIterator>
@@ -213,8 +214,8 @@ private:
         copy_assign_alloc( x, bool_constant<alloc_traits::propagate_on_container_copy_assignment::value>() );
     }
 
-    constexpr void move_assign_alloc( vector&& x ) noexcept( !alloc_traits::propagate_on_container_move_assignment::value
-                                                             || std::is_nothrow_move_assignable_v<allocator_type> ) {
+    constexpr void move_assign_alloc( vector& x ) noexcept( !alloc_traits::propagate_on_container_move_assignment::value
+                                                            || std::is_nothrow_move_assignable_v<allocator_type> ) {
         move_assign_alloc( x, bool_constant<alloc_traits::propagate_on_container_move_assignment::value>() );
     }
 
@@ -230,13 +231,13 @@ private:
 
     constexpr void copy_assign_alloc( const vector& x, false_type ) {}
 
-    constexpr void move_assign_alloc( vector&& x, true_type ) noexcept( std::is_nothrow_move_assignable_v<allocator_type> ) {
+    constexpr void move_assign_alloc( vector& x, true_type ) noexcept( std::is_nothrow_move_assignable_v<allocator_type> ) {
         alloc() = wyne::move( x.alloc() );
     }
 
-    constexpr void move_assign_alloc( vector&& x, false_type ) noexcept {}
+    constexpr void move_assign_alloc( vector& x, false_type ) noexcept {}
 
-    constexpr void move_assign( vector&& x, true_type ) noexcept( std::is_nothrow_move_assignable_v<allocator_type> ) {
+    constexpr void move_assign( vector& x, true_type ) noexcept( std::is_nothrow_move_assignable_v<allocator_type> ) {
         vdeallocate();
         move_assign_alloc( x );  // this can throw
         begin_    = x.begin_;
@@ -245,10 +246,10 @@ private:
         x.begin_ = x.end_ = x.end_cap() = nullptr;
     }
 
-    constexpr void move_assign( vector&& x, false_type ) noexcept( alloc_traits::is_always_equal::value ) {
+    constexpr void move_assign( vector& x, false_type ) noexcept( alloc_traits::is_always_equal::value ) {
         if ( alloc() != x.alloc() ) {
             using Ip = std::move_iterator<iterator>;
-            assign( Ip( x.begin_ ), Ip( x.end_ ) );
+            assign( Ip( x.begin() ), Ip( x.end() ) );
         }
         else
             move_assign( x, true_type() );
@@ -267,7 +268,7 @@ private:
     }
 
     template <class Iterator>
-    constexpr void insert_with_size( const_iterator position, Iterator first, Iterator last, difference_type n ) {
+    constexpr iterator insert_with_size( const_iterator position, Iterator first, Iterator last, difference_type n ) {
         pointer p = begin_ + ( position - cbegin() );
         if ( n > 0 ) {
             if ( n <= end_cap() - end_ ) {
@@ -394,9 +395,9 @@ public:
     }
 
     constexpr vector( vector&& x ) noexcept : end_cap_( nullptr, wyne::move( x.alloc() ) ) {
-        begin_     = x.begin_;
-        end_       = x.end_;
-        end_cap_() = x.end_cap();
+        begin_    = x.begin_;
+        end_      = x.end_;
+        end_cap() = x.end_cap();
         x.begin_ = x.end_ = x.end_cap() = nullptr;
     }
 
@@ -439,14 +440,14 @@ public:
     }
 
     constexpr iterator       begin() noexcept { return make_iter( begin_ ); }
-    constexpr const_iterator begin() const noexcept { return begin(); }
+    constexpr const_iterator begin() const noexcept { return make_iter( begin_ ); }
     constexpr iterator       end() noexcept { return make_iter( end_ ); }
-    constexpr const_iterator end() const noexcept { return end(); }
+    constexpr const_iterator end() const noexcept { return make_iter( end_ ); }
 
     constexpr reverse_iterator       rbegin() noexcept { return reverse_iterator( end() ); }
-    constexpr const_reverse_iterator rbegin() const noexcept { return rbegin(); }
+    constexpr const_reverse_iterator rbegin() const noexcept { return const_reverse_iterator( end() ); }
     constexpr reverse_iterator       rend() noexcept { return reverse_iterator( begin() ); }
-    constexpr const_reverse_iterator rend() const noexcept { return rend(); }
+    constexpr const_reverse_iterator rend() const noexcept { return const_reverse_iterator( begin() ); }
 
     constexpr const_iterator         cbegin() noexcept { return begin(); }
     constexpr const_iterator         cend() noexcept { return end(); }
@@ -519,13 +520,13 @@ public:
     }
 
     constexpr reference at( size_type n ) {
-        if ( n > size() )
+        if ( n >= size() )
             throw_out_of_range();
         return begin_[ n ];
     }
 
     constexpr const_reference at( size_type n ) const {
-        if ( n > size() )
+        if ( n >= size() )
             throw_out_of_range();
         return begin_[ n ];
     }
@@ -588,19 +589,14 @@ public:
         destruct_at_end( end_ - 1 );
     }
 
-    template <class InputIterator, std::enable_if_t<is_exactly_input_iterator_t<InputIterator>
-                                                        && std::is_constructible_v<value_type, typename iterator_traits<InputIterator>::value_type>,
-                                                    int> = 0>
+    template <class InputIterator, std::enable_if_t<is_exactly_input_iterator_t<InputIterator>, int> = 0>
     constexpr void assign( InputIterator first, InputIterator last ) {
         clear();
         for ( ; first != last; ++first )
             emplace_back( *first );
     }
 
-    template <class ForwardIterator,
-              std::enable_if_t<is_forward_iterator_t<ForwardIterator>
-                                   && std::is_constructible_v<value_type, typename iterator_traits<ForwardIterator>::value_type>,
-                               int> = 0>
+    template <class ForwardIterator, std::enable_if_t<is_forward_iterator_t<ForwardIterator>, int> = 0>
     constexpr void assign( ForwardIterator first, ForwardIterator last ) {
         const auto new_size = static_cast<size_type>( wyne::distance( first, last ) );
         if ( new_size <= capacity() ) {
@@ -712,7 +708,7 @@ public:
                 if ( n > 0 ) {
                     move_range( p, old_last, p + old_n );
                     // TODO: use wyne in the future
-                    const_pointer xr = std::pointer_traits<pointer>::pointer_to( x );
+                    const_pointer xr = std::pointer_traits<const_pointer>::pointer_to( x );
                     if ( p <= xr && xr < end_ )
                         xr += old_n;
                     wyne::fill_n( p, n, *xr );

@@ -81,6 +81,11 @@ constexpr void allocator<Tp>::destroy( Tp* first, Tp* last ) {
     wyne::destroy( first, last );
 }
 
+template <class _Tp, class _Up>
+inline constexpr bool operator==( const allocator<_Tp>&, const allocator<_Up>& ) _NOEXCEPT {
+    return true;
+}
+
 };  // namespace wyne
 
 #endif
