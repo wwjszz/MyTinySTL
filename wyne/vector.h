@@ -809,6 +809,12 @@ inline constexpr typename vector<Tp, Allocator>::size_type erase_if( vector<Tp, 
     return old_size - v.size();
 }
 
+// TODO: use wyne instead std
+template <class Tp, class Allocator>
+constexpr auto operator<=>( const vector<Tp, Allocator>& x, const vector<Tp, Allocator>& y ) {
+    return std::lexicographical_compare_three_way( x.begin(), x.end(), y.begin(), y.end(), std::__synth_three_way );
+}
+
 };  // namespace wyne
 
 #endif
