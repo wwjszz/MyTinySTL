@@ -15,7 +15,6 @@ template <class Value>
 class optional;
 
 template <class T>
-// FIXME: if const T& -> T
 concept is_derived_from_optional = requires( const T& t ) { []<class U>( const optional<U>& ) {}( t ); };
 
 // like std::nullopt_t
@@ -35,6 +34,9 @@ template <class Value>
 class optional {
 public:
     using value_type = Value;
+
+    static_assert( !std::is_reference_v<Value>, "optional may not be used with reference types" );
+    static_assert( !std::is_abstract_v<Value>, "optional may not be used with abstract types" );
 
     // optional(),(const optional&),(optional&&)
     constexpr optional() noexcept : storage() {}
@@ -137,7 +139,6 @@ public:
         return *this;
     }
 
-    // FIXME: MAY BE WRONG
     template <class... Args>
     Value& emplace( Args&&... args ) noexcept( std::is_nothrow_constructible_v<Value, Args...> ) {
         reset();
@@ -145,7 +146,6 @@ public:
         return value();
     }
 
-    // FIXME: MAY BE WRONG
     template <class U, class... Args, class = std::enable_if_t<std::is_constructible_v<Value, std::initializer_list<U>, Args...>>>
     Value& emplace( std::initializer_list<U> il,
                     Args&&... args ) noexcept( std::is_nothrow_constructible_v<Value, std::initializer_list<U>, Args...> ) {
@@ -192,8 +192,6 @@ public:
         return wyne::move( storage.value );
     }
 
-    // TODO: value() const && ?
-
     // get_pointer
     constexpr Value*       get_pointer() & noexcept { return has_value() ? &value() : nullptr; }
     constexpr const Value* get_pointer() const& noexcept { return has_value() ? &value() : nullptr; }
@@ -209,7 +207,6 @@ public:
     constexpr Value&       operator*() & noexcept { return value(); }
     constexpr const Value& operator*() const& noexcept { return value(); }
     constexpr Value&&      operator*() && noexcept { return wyne::move( value() ); }
-    // TODO: const Value&& ?
 
     // operator->
     constexpr Value*       operator->() const noexcept { return &value(); }
@@ -246,7 +243,6 @@ private:
         explicit Constructor() = default;
     };
 
-    // FIXME: What's diff between noexcept(...Args&&...) noexcept(...Args...)
     template <class... Args>
     constexpr optional( Constructor, Args&&... args ) noexcept( std::is_nothrow_constructible_v<Value, Args...> ) {
         construct( wyne::forward<Args>( args )... );
