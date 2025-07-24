@@ -1,4 +1,5 @@
 #include "../wyne/util.h"
+#include "optional.h"
 #include <iostream>
 #include <string>
 #include <vector>
