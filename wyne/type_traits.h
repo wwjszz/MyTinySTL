@@ -13,6 +13,9 @@ struct _integral_constant {
 template <class T, T v>
 using integral_constant = _integral_constant<T, v>;
 
+template <std::size_t N>
+using size_constant = integral_constant<std::size_t, N>;
+
 template <bool b>
 using _bool_constant = _integral_constant<bool, b>;
 
@@ -94,7 +97,8 @@ template <class...>
 struct first_true : public _false_type {};
 
 template <class B1, class... Bn>
-struct first_true<B1, Bn...> : conditional_t<static_cast<bool>( B1::value ), B1, first_true<Bn...>> {};
+struct first_true<B1, Bn...>
+    : conditional_t<static_cast<bool>( B1::value ), B1, first_true<Bn...>> {};
 
 // first_false
 
@@ -102,7 +106,34 @@ template <class...>
 struct first_false : public _true_type {};
 
 template <class B1, class... Bn>
-struct first_false<B1, Bn...> : conditional<static_cast<bool>( B1::value ), first_false<Bn...>, B1> {};
+struct first_false<B1, Bn...>
+    : conditional<static_cast<bool>( B1::value ), first_false<Bn...>, B1> {};
+
+// add type
+
+template <class T>
+struct add_const {
+    using type = const T;
+};
+
+template <class T>
+struct add_volatile {
+    using type = volatile T;
+};
+
+template <class T>
+struct add_cv {
+    using type = const volatile T;
+};
+
+template <class T>
+using add_const_t = typename add_const<T>::type;
+
+template <class T>
+using add_volatile_t = typename add_volatile<T>::type;
+
+template <class T>
+using add_cv_t = typename add_cv<T>::type;
 
 }  // namespace wyne
 

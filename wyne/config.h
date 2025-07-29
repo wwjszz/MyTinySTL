@@ -16,6 +16,11 @@ inline constexpr bool requires_special_alignment() {
 template <class Tp, bool>
 struct dependent_type : public Tp {};
 
+#ifndef WYNE_USE_STD
+#define WYNE_INTEGER_SEQUENCE
+#define WYNE_TYPE_PACK_ELEMENT
+#endif
+
 };  // namespace wyne
 
 #endif
