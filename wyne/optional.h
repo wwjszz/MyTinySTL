@@ -18,8 +18,7 @@ template <class Value>
 class optional;
 
 template <class T>
-concept is_derived_from_optional =
-    requires( const T& t ) { []<class U>( const optional<U>& ) {}( t ); };
+concept is_derived_from_optional = requires( const T& t ) { []<class U>( const optional<U>& ) {}( t ); };
 
 // like std::nullopt_t
 struct None {
@@ -45,8 +44,7 @@ public:
     // optional(),(const optional&),(optional&&)
     constexpr optional() noexcept : storage() {}
 
-    constexpr optional( const optional& src ) noexcept(
-        std::is_nothrow_copy_constructible_v<Value> ) {
+    constexpr optional( const optional& src ) noexcept( std::is_nothrow_copy_constructible_v<Value> ) {
         if ( src.has_value() )
             construct( src.value() );
     }
@@ -58,32 +56,24 @@ public:
 
     // optional(const None&), (const Value&), (Value&&)
     constexpr optional( const None& ) noexcept : optional() {}
-    constexpr optional( const Value& new_value ) noexcept(
-        std::is_nothrow_copy_constructible_v<Value> ) {
-        construct( new_value );
-    }
-    constexpr optional( Value&& new_value ) noexcept(
-        std::is_nothrow_move_constructible_v<Value> ) {
-        construct( wyne::move( new_value ) );
-    }
+    constexpr optional( const Value& new_value ) noexcept( std::is_nothrow_copy_constructible_v<Value> ) { construct( new_value ); }
+    constexpr optional( Value&& new_value ) noexcept( std::is_nothrow_move_constructible_v<Value> ) { construct( wyne::move( new_value ) ); }
 
     // optional(in_place, ...)
     // To disambiguate empty optional from default-constructed value
     template <class... Args>
-    constexpr optional( std::in_place_t,
-                        Args&&... args ) noexcept( std::is_nothrow_constructible_v<Value, Args...> )
+    constexpr optional( std::in_place_t, Args&&... args ) noexcept( std::is_nothrow_constructible_v<Value, Args...> )
         : optional( Constructor{}, wyne::forward<Args>( args )... ) {}
 
     template <class U, class... Args>
-    constexpr optional( std::in_place_t, std::initializer_list<U> il, Args&&... args ) noexcept(
-        std::is_nothrow_constructible_v<Value, std::initializer_list<U>, Args...> )
+    constexpr optional( std::in_place_t, std::initializer_list<U> il,
+                        Args&&... args ) noexcept( std::is_nothrow_constructible_v<Value, std::initializer_list<U>, Args...> )
         : optional( Constructor{}, il, wyne::forward<Args>( args )... ) {}
 
     // assign None, optional&&, optioanl
     constexpr void assign( const None& ) noexcept { reset(); }
 
-    constexpr void assign( const optional& src ) noexcept(
-        std::is_nothrow_copy_constructible_v<Value> && std::is_nothrow_copy_assignable_v<Value> ) {
+    constexpr void assign( const optional& src ) noexcept( std::is_nothrow_copy_constructible_v<Value> && std::is_nothrow_copy_assignable_v<Value> ) {
         if ( this != &src ) {
             if ( src.has_value() ) {
                 assign( src.value() );
@@ -94,8 +84,7 @@ public:
         }
     }
 
-    constexpr void assign( optional&& src ) noexcept(
-        std::is_nothrow_move_constructible_v<Value> && std::is_nothrow_move_assignable_v<Value> ) {
+    constexpr void assign( optional&& src ) noexcept( std::is_nothrow_move_constructible_v<Value> && std::is_nothrow_move_assignable_v<Value> ) {
         if ( this != &src ) {
             if ( src.has_value() ) {
                 assign( wyne::move( src.value() ) );
@@ -108,8 +97,8 @@ public:
     }
 
     // assign Value&&, const Value&
-    constexpr void assign( const Value& new_value ) noexcept(
-        std::is_nothrow_copy_constructible_v<Value> && std::is_nothrow_copy_assignable_v<Value> ) {
+    constexpr void assign( const Value& new_value ) noexcept( std::is_nothrow_copy_constructible_v<Value>
+                                                              && std::is_nothrow_copy_assignable_v<Value> ) {
         if ( has_value() ) {
             storage.value = new_value;
         }
@@ -118,8 +107,7 @@ public:
         }
     }
 
-    constexpr void assign( Value&& new_value ) noexcept(
-        std::is_nothrow_move_constructible_v<Value> && std::is_nothrow_move_assignable_v<Value> ) {
+    constexpr void assign( Value&& new_value ) noexcept( std::is_nothrow_move_constructible_v<Value> && std::is_nothrow_move_assignable_v<Value> ) {
         if ( has_value() ) {
             storage.value = wyne::move( new_value );
         }
@@ -134,16 +122,14 @@ public:
         return *this;
     }
 
-    constexpr optional&
-    operator=( const optional& other ) noexcept( std::is_nothrow_copy_assignable_v<Value> ) {
+    constexpr optional& operator=( const optional& other ) noexcept( std::is_nothrow_copy_assignable_v<Value> ) {
         if ( this != &other ) {
             assign( other );
         }
         return *this;
     }
 
-    constexpr optional&
-    operator=( optional&& other ) noexcept( std::is_nothrow_move_assignable_v<Value> ) {
+    constexpr optional& operator=( optional&& other ) noexcept( std::is_nothrow_move_assignable_v<Value> ) {
         if ( this != &other ) {
             assign( wyne::move( other ) );
         }
@@ -151,8 +137,7 @@ public:
     }
 
     template <class U>
-    constexpr optional&
-    operator=( U&& new_value ) noexcept( std::is_nothrow_assignable_v<Value, U&&> ) {
+    constexpr optional& operator=( U&& new_value ) noexcept( std::is_nothrow_assignable_v<Value, U&&> ) {
         assign( wyne::forward<U>( new_value ) );
         return *this;
     }
@@ -164,11 +149,9 @@ public:
         return value();
     }
 
-    template <
-        class U, class... Args,
-        class = std::enable_if_t<std::is_constructible_v<Value, std::initializer_list<U>, Args...>>>
-    Value& emplace( std::initializer_list<U> il, Args&&... args ) noexcept(
-        std::is_nothrow_constructible_v<Value, std::initializer_list<U>, Args...> ) {
+    template <class U, class... Args, class = std::enable_if_t<std::is_constructible_v<Value, std::initializer_list<U>, Args...>>>
+    Value& emplace( std::initializer_list<U> il,
+                    Args&&... args ) noexcept( std::is_nothrow_constructible_v<Value, std::initializer_list<U>, Args...> ) {
         reset();
         construct( il, wyne::forward<Args>( args )... );
         return value();
@@ -214,10 +197,8 @@ public:
 
     // get_pointer
     constexpr Value*       get_pointer() & noexcept { return has_value() ? &value() : nullptr; }
-    constexpr const Value* get_pointer() const& noexcept {
-        return has_value() ? &value() : nullptr;
-    }
-    constexpr Value* get_pointer() && = delete;
+    constexpr const Value* get_pointer() const& noexcept { return has_value() ? &value() : nullptr; }
+    constexpr Value*       get_pointer() && = delete;
 
     // has_value
     constexpr bool has_value() const noexcept { return storage.has_value; }
@@ -253,14 +234,12 @@ public:
 
 private:
     template <class U>
-    friend constexpr optional<std::decay_t<U>>
-    make_optional( U&& ) noexcept( std::is_nothrow_constructible_v<std::decay_t<U>, U> );
+    friend constexpr optional<std::decay_t<U>> make_optional( U&& ) noexcept( std::is_nothrow_constructible_v<std::decay_t<U>, U> );
     template <class T, class... Args>
-    friend constexpr optional<T>
-    make_optional( Args&&... ) noexcept( std::is_nothrow_constructible_v<T, Args...> );
+    friend constexpr optional<T> make_optional( Args&&... ) noexcept( std::is_nothrow_constructible_v<T, Args...> );
     template <class T, class U, class... Args>
-    friend constexpr optional<T> make_optional( std::initializer_list<U>, Args&&... ) noexcept(
-        std::is_nothrow_constructible_v<T, std::initializer_list<U>, Args...> );
+    friend constexpr optional<T> make_optional( std::initializer_list<U>,
+                                                Args&&... ) noexcept( std::is_nothrow_constructible_v<T, std::initializer_list<U>, Args...> );
 
     // Constructor
     struct Constructor {
@@ -268,8 +247,7 @@ private:
     };
 
     template <class... Args>
-    constexpr optional( Constructor, Args&&... args ) noexcept(
-        std::is_nothrow_constructible_v<Value, Args...> ) {
+    constexpr optional( Constructor, Args&&... args ) noexcept( std::is_nothrow_constructible_v<Value, Args...> ) {
         construct( wyne::forward<Args>( args )... );
     }
 
@@ -279,8 +257,7 @@ private:
     }
 
     template <class... Args>
-    constexpr void
-    construct( Args&&... args ) noexcept( std::is_nothrow_constructible_v<Value, Args...> ) {
+    constexpr void construct( Args&&... args ) noexcept( std::is_nothrow_constructible_v<Value, Args...> ) {
         wyne::construct_at( &storage.value, wyne::forward<Args>( args )... );
         storage.has_value = true;
     }
@@ -312,31 +289,28 @@ constexpr void swap( optional<Value>& x, optional<Value>& y ) noexcept( noexcept
 
 // make_optional
 template <class U>
-constexpr optional<std::decay_t<U>>
-make_optional( U&& u ) noexcept( std::is_nothrow_constructible_v<std::decay_t<U>, U> ) {
+constexpr optional<std::decay_t<U>> make_optional( U&& u ) noexcept( std::is_nothrow_constructible_v<std::decay_t<U>, U> ) {
     using Constructor = optional<std::decay_t<U>>::Constructor;
     return { Constructor{}, wyne::forward<U>( u ) };
 }
 
 template <class T, class... Args>
-constexpr optional<T>
-make_optional( Args&&... args ) noexcept( std::is_nothrow_constructible_v<T, Args...> ) {
+constexpr optional<T> make_optional( Args&&... args ) noexcept( std::is_nothrow_constructible_v<T, Args...> ) {
     using Constructor = optional<T>::Constructor;
     return { Constructor{}, wyne::forward<Args>( args )... };
 }
 
 template <class T, class U, class... Args>
-constexpr optional<T> make_optional( std::initializer_list<U> il, Args&&... args ) noexcept(
-    std::is_nothrow_constructible_v<T, std::initializer_list<U>, Args...> ) {
+constexpr optional<T> make_optional( std::initializer_list<U> il,
+                                     Args&&... args ) noexcept( std::is_nothrow_constructible_v<T, std::initializer_list<U>, Args...> ) {
     using Constructor = optional<T>::Constructor;
     return { Constructor{}, il, wyne::forward<Args>( args )... };
 }
 
 // operator <=>
 template <class T, std::three_way_comparable_with<T> U>
-constexpr std::compare_three_way_result_t<T, U>
-operator<=>( const optional<T>& x,
-             const optional<U>& y ) noexcept( noexcept( x.value() <=> y.value() ) ) {
+constexpr std::compare_three_way_result_t<T, U> operator<=>( const optional<T>& x,
+                                                             const optional<U>& y ) noexcept( noexcept( x.value() <=> y.value() ) ) {
     if ( x && y )
         return x.value() <=> y.value();
     return x.has_value() <=> y.has_value();
@@ -344,8 +318,7 @@ operator<=>( const optional<T>& x,
 
 template <class T, class U>
     requires( !is_derived_from_optional<U> ) && std::three_way_comparable_with<T, U>
-constexpr std::compare_three_way_result_t<T, U>
-operator<=>( const optional<T>& x, const U& y ) noexcept( noexcept( x.value() <=> y ) ) {
+constexpr std::compare_three_way_result_t<T, U> operator<=>( const optional<T>& x, const U& y ) noexcept( noexcept( x.value() <=> y ) ) {
     return x.has_value() ? x.value() <=> y : std::strong_ordering::less;
 }
 
@@ -356,11 +329,8 @@ constexpr std::strong_ordering operator<=>( const optional<T>& x, None ) noexcep
 
 // operator ==
 template <class T, class U>
-constexpr std::enable_if_t<
-    std::is_convertible_v<decltype( std::declval<const T&>() == std::declval<const U&>() ), bool>,
-    bool>
-operator==( const optional<T>& x,
-            const optional<U>& y ) noexcept( noexcept( x.value() == y.value() ) ) {
+constexpr std::enable_if_t<std::is_convertible_v<decltype( std::declval<const T&>() == std::declval<const U&>() ), bool>, bool>
+operator==( const optional<T>& x, const optional<U>& y ) noexcept( noexcept( x.value() == y.value() ) ) {
     if ( static_cast<bool>( x ) != static_cast<bool>( y ) )
         return false;
     if ( !x )
@@ -369,9 +339,7 @@ operator==( const optional<T>& x,
 }
 
 template <class T, class U>
-constexpr std::enable_if_t<
-    std::is_convertible_v<decltype( std::declval<const T&>() == std::declval<const U&>() ), bool>,
-    bool>
+constexpr std::enable_if_t<std::is_convertible_v<decltype( std::declval<const T&>() == std::declval<const U&>() ), bool>, bool>
 operator==( const optional<T>& x, const U& y ) noexcept( noexcept( x.value() == y ) ) {
     return x.has_value() ? x.value() == y : false;
 }

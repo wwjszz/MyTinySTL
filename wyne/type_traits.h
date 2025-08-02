@@ -68,8 +68,7 @@ template <template <class> class Pred, class... Args>
 inline constexpr bool is_satisfied_or_v = satisfies_or<Pred, Args...>::value;
 
 template <class Dp, class Bp>
-inline constexpr bool is_derived_from_v =
-    std::is_base_of_v<Bp, Dp> && std::is_convertible_v<const volatile Dp*, const volatile Bp*>;
+inline constexpr bool is_derived_from_v = std::is_base_of_v<Bp, Dp> && std::is_convertible_v<const volatile Dp*, const volatile Bp*>;
 
 // conditional
 
@@ -97,8 +96,7 @@ template <class...>
 struct first_true : public _false_type {};
 
 template <class B1, class... Bn>
-struct first_true<B1, Bn...>
-    : conditional_t<static_cast<bool>( B1::value ), B1, first_true<Bn...>> {};
+struct first_true<B1, Bn...> : conditional_t<static_cast<bool>( B1::value ), B1, first_true<Bn...>> {};
 
 // first_false
 
@@ -106,11 +104,13 @@ template <class...>
 struct first_false : public _true_type {};
 
 template <class B1, class... Bn>
-struct first_false<B1, Bn...>
-    : conditional<static_cast<bool>( B1::value ), first_false<Bn...>, B1> {};
+struct first_false<B1, Bn...> : conditional<static_cast<bool>( B1::value ), first_false<Bn...>, B1> {};
+
+// all
+template <bool... Bs>
+concept all = ( ... && Bs );
 
 // add type
-
 template <class T>
 struct add_const {
     using type = const T;

@@ -21,6 +21,30 @@ struct dependent_type : public Tp {};
 #define WYNE_TYPE_PACK_ELEMENT
 #endif
 
+#define WYNE_BUILTIN_UNREACHABLE __builtin_unreachable()
+
+// MACRO AUTO
+#define WYNE_AUTO auto
+#define WYNE_AUTO_RETURN( ... ) \
+    {                           \
+        return __VA_ARGS__;     \
+    }
+
+#define WYNE_AUTO_FR auto&&
+#define WYNE_AUTO_FR_RETURN( ... ) \
+    {                              \
+        return __VA_ARGS__;        \
+    }
+
+#define WYNE_DECLTYPE_AUTO decltype( auto )
+#define WYNE_DECLTYPE_AUTO_RETURN( ... ) \
+    {                                    \
+        return __VA_ARGS__;              \
+    }
+
+#define WYNE_NOEXCEPT_RETURN( ... ) \
+    noexcept( noexcept( __VA_ARGS__ ) ) { return __VA_ARGS__; }
+
 };  // namespace wyne
 
 #endif
