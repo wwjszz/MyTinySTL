@@ -4,6 +4,7 @@
 #include "type_traits.h"
 #include <cstdarg>
 #include <type_traits>
+#include <utility>
 
 namespace wyne {
 
@@ -35,6 +36,25 @@ template <class T>
 inline constexpr T&& forward( std::remove_reference_t<T>&& t ) noexcept {
     static_assert( !std::is_lvalue_reference_v<T>, "cannot forward an rvalue as an lvalue" );
     return static_cast<T&&>( t );
+}
+
+// forwrad_like
+// TODO: const T& -> T const&, const is not top-level
+template <class T, class U>
+inline constexpr auto&& forward_like( U&& u ) noexcept {
+    constexpr bool is_adding_const = std::is_const_v<std::remove_reference_t<T>>;
+    if constexpr ( std::is_lvalue_reference_v<T> ) {
+        if constexpr ( is_adding_const )
+            return std::as_const( u );
+        else
+            return static_cast<U&>( u );
+    }
+    else {
+        if constexpr ( is_adding_const )
+            return std::move( std::as_const( u ) );
+        else
+            std::move( u );
+    }
 }
 
 // swap

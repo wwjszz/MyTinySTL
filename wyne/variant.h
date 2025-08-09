@@ -2,9 +2,11 @@
 #define WYNE_VARIANT_H__
 
 #include <array>
+#include <compare>
 #include <concepts>
 #include <exception>
 #include <functional>
+#include <initializer_list>
 #include <limits>
 #include <memory>
 #include <type_traits>
@@ -12,8 +14,9 @@
 
 #include "config.h"
 #include "type_traits.h"
+#include "type_traits/concepts.h"
 #include "type_traits/in_place.h"
-#include "type_traits/return_as.h"
+#include "type_traits/integer_sequence.h"
 #include "type_traits/type_pack_element.h"
 #include "util.h"
 
@@ -63,16 +66,23 @@ namespace wyne {
 class bad_variant_access : public std::exception {
 public:
     virtual const char* what() const noexcept override { return "bad variant access"; }
-
-    [[noreturn]] void throw_bad_variant_access() const { throw bad_variant_access(); }
 };
+
+[[noreturn]] inline void throw_bad_variant_access() { throw bad_variant_access(); }
 
 // variant_size
 template <class T>
 struct variant_size;
 
 template <class... Ts>
-struct variant;
+class variant;
+
+template <class T>
+concept is_variant = requires( T t ) {
+    {
+        []<class... Ts>( variant<Ts...> ) {}( t )
+    };
+};
 
 template <class... Ts>
 struct variant_size<variant<Ts...>> : size_constant<sizeof...( Ts )> {};
@@ -111,6 +121,18 @@ struct variant_alternative<I, const volatile T> : add_cv<variant_alternative<I, 
 template <std::size_t I, class T>
 using variant_alternative_t = typename variant_alternative<I, T>::type;
 
+// T(From<Ts...>) -> To<Ts...>
+template <class T, template <class...> class To, class... Res>
+struct unpack_impl {};
+
+template <template <class...> class From, template <class...> class To, class... Ts, class... Res>
+struct unpack_impl<From<Ts...>, To, Res...> {
+    using type = To<Res..., Ts...>;
+};
+
+template <class T, template <class...> class To, class... Res>
+using unpack_to = unpack_impl<T, To, Res...>::type;
+
 constexpr std::size_t variant_npos = static_cast<std::size_t>( -1 );
 
 // TODO: volatile ???
@@ -141,6 +163,9 @@ namespace core {
     template <class T, class... Ts>
     using find_index_sfinae = find_index_sfinae_impl<find_index<T, Ts...>()>;
 
+    template <class T, class... Ts>
+    inline constexpr std::size_t find_index_sfinae_t = find_index_sfinae<T, Ts...>::value;
+
     template <std::size_t I>
     struct find_index_checked_impl : size_constant<I> {
         static_assert( I != not_found, "the specified type is not found." );
@@ -149,6 +174,9 @@ namespace core {
 
     template <class T, class... Ts>
     using find_index_checked = find_index_checked_impl<find_index<T, Ts...>()>;
+
+    template <class T, class... Ts>
+    inline constexpr std::size_t find_index_checked_t = find_index_checked<T, Ts...>::value;
 
     struct valueless_t {};
 
@@ -435,6 +463,8 @@ namespace core {
         char                                                  dummy_;                                                                            \
         alt<Index, T>                                         head_;                                                                             \
         recursive_union<destructible_trait, Index + 1, Ts...> tail_;                                                                             \
+                                                                                                                                                 \
+        friend access::recursive_union;                                                                                                          \
     };
 
     WYNE_RECURSIVE_UNION( Trait::TrivallyAvailable, ~recursive_union() = default );
@@ -685,12 +715,333 @@ namespace core {
         }
     };
 
+    template <class Traits, Trait = Traits::move_assignable_trait>
+    class move_assignment;
+
+#define WYNE_MOVE_ASSIGNMENT( move_assignment_trait, definition )                                    \
+    template <class... Ts>                                                                           \
+    class move_assignment<traits<Ts...>, move_assignment_trait> : public assignment<traits<Ts...>> { \
+        using super = assignment<traits<Ts...>>;                                                     \
+                                                                                                     \
+    public:                                                                                          \
+        WYNE_INHERITING_CTOR( move_assignment, super );                                              \
+        using super::operator=;                                                                      \
+                                                                                                     \
+        move_assignment( const move_assignment& ) = default;                                         \
+        move_assignment( move_assignment&& )      = default;                                         \
+                                                                                                     \
+        move_assignment& operator=( const move_assignment& ) = default;                              \
+        definition;                                                                                  \
+        ~move_assignment() = default;                                                                \
+    };
+
+    WYNE_MOVE_ASSIGNMENT( Trait::TrivallyAvailable, move_assignment& operator=( move_assignment&& ) = default );
+
+    WYNE_MOVE_ASSIGNMENT(
+        Trait::Available, move_assignment& operator=( move_assignment&& that ) noexcept(
+                              wyne::all<( std::is_nothrow_move_constructible_v<Ts> && std::is_nothrow_move_assignable_v<Ts> )...> ) {
+            this->generic_assign( wyne::move( that ) );
+        } );
+
+    WYNE_MOVE_ASSIGNMENT( Trait::Unavailable, move_assignment& operator=( move_assignment&& ) = delete );
+
+#undef WYNE_MOVE_ASSIGNMENT
+
+    template <class... Ts>
+    class impl : public move_assignment<traits<Ts...>> {
+        using super = move_assignment<traits<Ts...>>;
+
+    public:
+        WYNE_INHERITING_CTOR( impl, super );
+        using super::operator=;
+
+        impl( const impl& )            = default;
+        impl( impl&& )                 = default;
+        impl& operator=( const impl& ) = default;
+        impl& operator=( impl&& )      = default;
+
+        template <std::size_t I, class T>
+        constexpr void assign( T&& t ) noexcept( noexcept( this->assign_alt( access::base::get_alt<I>( *this ), wyne::forward<T>( t ) ) ) ) {
+            this->assign_alt( access::base::get_alt<I>( *this ), wyne::forward<T>( t ) );
+        }
+
+        constexpr void swap( impl& that ) noexcept {
+            if ( this->valueless_by_exception() && that.valueless_by_exception() ) {
+                // do nothing
+            }
+            else if ( this->index_ == that.index_ ) {
+                visitation::alt::visit_alt_at(
+                    this->index_,
+                    []( auto& lhs_alt, auto& rhs_alt ) {
+                        using std::swap;
+                        swap( lhs_alt, rhs_alt );
+                    },
+                    *this, that );
+            }
+            else {
+                // TODO: Exception
+                impl temp( wyne::move( that ) );
+                this->generic_construct( that, wyne::move( *this ) );
+                this->generic_construct( *this, wyne::move( temp ) );
+            }
+        }
+
+    private:
+        constexpr bool move_nothrow() noexcept {
+            return this->valueless_by_exception() || std::array<bool, sizeof...( Ts )>{ std::is_nothrow_move_constructible_v<Ts>... }[ this->index_ ];
+        }
+    };
+
+#undef WYNE_INHERITING_CTOR
+
+    template <class From, class To>
+    concept convert_without_narrowing = requires( From&& from ) {
+        { std::type_identity_t<To[]>{ from } };
+    };
+
+    template <class T>
+    concept is_arithemetic = std::is_arithmetic_v<T>;
+
+    template <std::size_t I, class T>
+    struct overload_leaf_helper {
+        using impl = size_constant<I> ( * )( T );
+        operator impl() const { return nullptr; }
+    };
+
+    template <class Arg, std::size_t I, class T>
+    struct overload_leaf {};
+
+    template <class Arg, std::size_t I, class T>
+        requires( !is_arithemetic<T> )
+    struct overload_leaf<Arg, I, T> : overload_leaf_helper<I, T> {};
+
+    template <class Arg, std::size_t I, is_arithemetic T>
+        requires( std::is_same_v<std::remove_cvref_t<T>, bool> ? std::is_same_v<std::remove_cvref_t<Arg>, bool> : convert_without_narrowing<Arg, T> )
+    struct overload_leaf<Arg, I, T> : overload_leaf_helper<I, T> {};
+
+    template <class Arg, class... Ts>
+    struct overload_impl {
+    private:
+        template <class T>
+        struct impl;
+
+        template <std::size_t... Is>
+        struct impl<index_sequence<Is...>> : overload_leaf<Arg, Is, Ts>... {};
+
+    public:
+        using type = impl<index_sequence_for<Ts...>>;
+    };
+
+    template <class Arg, class... Ts>
+    using overload = overload_impl<Arg, Ts...>::type;
+
+    template <class Arg, class... Ts>
+        requires requires( Arg arg ) {
+            { overload<Arg, Ts...>{}( arg ) };
+        }
+    using best_match = std::invoke_result_t<overload<Arg, Ts...>, Arg>;
+
+    template <class Arg, class... Ts>
+    inline constexpr std::size_t best_match_v = best_match<Arg, Ts...>::value;
+
+    template <class T>
+    struct is_in_place_index_impl : false_type {};
+
+    template <std::size_t I>
+    struct is_in_place_index_impl<in_place_index_t<I>> : true_type {};
+
+    template <class T>
+    concept is_in_place_index = is_in_place_index_impl<T>::value;
+
+    template <class T>
+    struct is_in_place_type_impl : false_type {};
+
+    template <class T>
+    struct is_in_place_type_impl<in_place_type_t<T>> : true_type {};
+
+    template <class T>
+    concept is_in_place_type = is_in_place_type_impl<T>::value;
+
+    // static_assert( std::same_as<size_constant<0>, best_match<int, long long>> );
+
+    // static_assert( convert_without_narrowing<bool, int> );
+
     // static_assert( convertible_to_base<assignment<traits<int>>>, "" );
 
 }  // namespace core
 
-template <class... Args>
-class variant {};
+template <class... Ts>
+class variant {
+    static_assert( 0 < sizeof...( Ts ), "variant must consist of at least one alternative." );
+
+    static_assert( wyne::all<!std::is_array_v<Ts>...>, "variant can not have a array type as an alternative." );
+
+    static_assert( wyne::all<!std::is_reference_v<Ts>...>, "variant can not have a reference type as an alternative." );
+
+    static_assert( wyne::all<!std::is_void_v<Ts>...>, "variant can not have a void type as an alternative." );
+
+    // ~variant opreator=
+
+    // variant(in_place_index_t<I>,std::initializer_list<Up> il,Args &&...args)
+    // variant(in_place_type_t<T>,Args &&...args) variant(in_place_type_t<T>,std::initializer_list<Up> il,Args &&...args)
+public:
+    template <default_constructible First = type_pack_element_t<0, Ts...>>
+    constexpr variant() noexcept( std::is_nothrow_default_constructible_v<First> ) : impl_( in_place_index_t<0>{} ) {}
+
+    variant( const variant& ) = default;
+    variant( variant&& )      = default;
+
+    template <class Arg,
+              // class Decay = std::decay<Arg>  ,
+              std::enable_if_t<!core::is_in_place_index<Arg>, int> = 0, std::enable_if_t<!core::is_in_place_type<Arg>, int> = 0,
+              std::size_t I = core::best_match_v<Arg, Ts...>, class T = type_pack_element_t<I, Ts...>>
+    constexpr variant( Arg&& arg ) noexcept( std::is_nothrow_constructible_v<T, Arg> ) : impl_( in_place_index_t<I>{}, wyne::forward<Arg>( arg ) ) {}
+
+    template <std::size_t I, class... Args, constructible<Args...> T = type_pack_element_t<I, Ts...>>
+    constexpr variant( in_place_index_t<I>, Args&&... args ) noexcept( std::is_nothrow_constructible_v<T, Args...> )
+        : impl_( in_place_index_t<I>{}, wyne::forward<Args>( args )... ) {}
+
+    template <std::size_t I, class U, class... Args, constructible<std::initializer_list<U>, Args...> T = type_pack_element_t<I, Ts...>>
+    constexpr variant( in_place_index_t<I>, std::initializer_list<U> il,
+                       // TODO: std::initializer_list<U> -> std::initializer_list<U>& ?
+                       Args&&... args ) noexcept( std::is_nothrow_constructible_v<T, std::initializer_list<U>, Args...> )
+        : impl_( in_place_index_t<I>{}, il, wyne::forward<Args>( args )... ) {}
+
+    template <class T, class... Args, std::size_t I = core::find_index_sfinae_t<T, Ts...>>
+        requires constructible<T, Args...>
+    constexpr variant( in_place_type_t<T>, Args&&... args ) noexcept( std::is_nothrow_constructible_v<T, Args...> )
+        : impl_( in_place_index_t<I>{}, wyne::forward<Args>( args )... ) {}
+
+    template <class T, class U, class... Args, std::size_t I = core::find_index_sfinae_t<T, Ts...>>
+        requires constructible<T, Args...>
+    constexpr variant( in_place_type_t<T>, std::initializer_list<U> il,
+                       Args&&... args ) noexcept( std::is_nothrow_constructible_v<T, std::initializer_list<U>, Args...> )
+        : impl_( in_place_index_t<I>{}, il, wyne::forward<Args>( args )... ) {}
+
+    ~variant() = default;
+
+    variant& operator=( const variant& ) = default;
+    variant& operator=( variant&& )      = default;
+
+    template <class Arg, std::size_t I = core::best_match_v<Arg, Ts...>, class T = type_pack_element_t<I, Ts...>>
+        requires assignable<T, Arg>
+    constexpr variant& operator=( Arg&& arg ) noexcept( std::is_nothrow_constructible_v<T, Arg> && std::is_nothrow_assignable_v<T, Arg> ) {
+        impl_.template assign<I>( wyne::forward<Arg>( arg ) );
+        return *this;
+    }
+
+    template <std::size_t I, class... Args, constructible<Args...> T = type_pack_element_t<I, Ts...>>
+    constexpr T& emplace( Args&&... args ) noexcept( std::is_nothrow_constructible_v<T, Args...> ) {
+        return impl_.template emplace<I>( wyne::forward<Args>( args )... );
+    }
+
+    template <std::size_t I, class U, class... Args, constructible<std::initializer_list<U>, Args...> T = type_pack_element_t<I, Ts...>>
+    constexpr T& emplace( std::initializer_list<U> il,
+                          Args&&... args ) noexcept( std::is_nothrow_constructible_v<T, std::initializer_list<U>, Args...> ) {
+        return impl_.template emplace<I>( il, wyne::forward<Args>( args )... );
+    }
+
+    constexpr bool valueless_by_exception() noexcept { return this->valueless_by_exception(); }
+
+    constexpr std::size_t index() noexcept { return impl_.index(); }
+
+    void swap( variant& that ) noexcept( wyne::all<( std::is_nothrow_move_constructible_v<Ts> && std::is_nothrow_swappable_v<Ts> )...> )
+        requires( wyne::all<( std::is_move_constructible_v<Ts> && std::is_swappable_v<Ts> )...> )
+    {
+        impl_.swap( that.impl_ );
+    }
+
+private:
+    core::impl<Ts...> impl_;
+};
+
+template <std::size_t I, class... Ts>
+inline constexpr bool holds_alternative( const variant<Ts...>& v ) noexcept {
+    return v.index() == I;
+}
+
+template <class T, class... Ts>
+inline constexpr bool holds_alternative( const variant<Ts...>& v ) noexcept {
+    return holds_alternative<core::find_index_checked_t<T, Ts...>>( v );
+}
+
+namespace core {
+
+    template <std::size_t I, class V>
+    struct generic_get_impl {
+        constexpr generic_get_impl( int ) noexcept;
+
+        constexpr WYNE_AUTO_FR operator()( V&& v ) const noexcept WYNE_AUTO_FR_RETURN( access::variant::get_alt<I>( wyne::forward<V>( v ) ).value );
+    };
+
+    template <std::size_t I, is_variant V>
+    inline constexpr WYNE_AUTO_FR generic_get( V&& v ) noexcept
+        WYNE_AUTO_FR_RETURN( generic_get_impl( holds_alternative<I>( v ) ? 0 : ( throw_bad_variant_access(), 0 ) )( wyne::forward<V>( v ) ) );
+
+    template <std::size_t I, is_variant V>
+    inline constexpr WYNE_AUTO generic_get_if( V* v ) noexcept
+        WYNE_AUTO_RETURN( v&& holds_alternative<I>( *v ) ? std::addressof( access::variant::get_alt<I>( *v ).value ) : nullptr );
+
+    inline constexpr bool is_any( std::initializer_list<bool> bl ) noexcept {
+        for ( bool b : bl )
+            if ( b )
+                return true;
+        return false;
+    }
+
+};  // namespace core
+
+template <std::size_t I, is_variant V>
+inline constexpr WYNE_AUTO_FR get( V&& v ) noexcept WYNE_AUTO_FR_RETURN( wyne::forward_like<V>( core::generic_get<I>( wyne::forward<V>( v ) ) ) );
+
+template <class T, is_variant V>
+inline constexpr WYNE_AUTO_FR get( V&& v ) noexcept
+    WYNE_AUTO_FR_RETURN( wyne::get<unpack_to<std::remove_cvref_t<V>, core::find_index_checked, T>::value>( wyne::forward<V>( v ) ) );
+
+template <std::size_t I, is_variant V>
+inline constexpr WYNE_AUTO get_if( V* v ) noexcept WYNE_AUTO_RETURN( core::generic_get_if<I>( v ) );
+
+template <class T, is_variant V>
+inline constexpr WYNE_AUTO get_if( V* v ) noexcept
+    WYNE_AUTO_RETURN( wyne::get_if<unpack_to<std::remove_cvref_t<V>, core::find_index_checked, T>::value>( v ) );
+
+template <class... Ts>
+inline constexpr auto operator<=>( const variant<Ts...>& lhs, const variant<Ts...>& rhs ) noexcept(
+    ( noexcept( std::declval<std::compare_three_way>()( std::declval<Ts>(), std::declval<Ts>() ) ) && ... ) ) {
+    std::size_t lhs_index_ = lhs.index(), rhs_index_ = rhs.index();
+    if ( lhs_index_ != rhs_index_ )
+        return lhs_index_ <=> rhs_index_;
+    if ( lhs.valueless_by_exception() )
+        return std::strong_ordering::equivalent;
+
+    return core::visitation::variant::visit_alt_at(
+        lhs.index(), []( auto&& lhs, auto&& rhs ) { return std::compare_three_way{}( lhs, rhs ); }, lhs, rhs );
+}
+
+struct monostate {};
+
+inline constexpr bool operator<( monostate, monostate ) noexcept { return false; }
+
+inline constexpr bool operator>( monostate, monostate ) noexcept { return false; }
+
+inline constexpr bool operator<=( monostate, monostate ) noexcept { return true; }
+
+inline constexpr bool operator>=( monostate, monostate ) noexcept { return true; }
+
+inline constexpr bool operator==( monostate, monostate ) noexcept { return true; }
+
+inline constexpr bool operator!=( monostate, monostate ) noexcept { return false; }
+
+template <class Visitor, class... Vs>
+inline constexpr WYNE_DECLTYPE_AUTO visit( Visitor&& visitor, Vs&&... vs )
+    WYNE_DECLTYPE_AUTO_RETURN( ( !core::is_any( { vs.valueless_by_exception()... } ) ? ( void )0 : throw_bad_variant_access() ),
+                               core::visitation::variant::visit_value( wyne::forward<Visitor>( visitor ), wyne::forward<Vs>( vs )... ) );
+
+template <class... Ts>
+inline constexpr void swap( const variant<Ts...>& lhs, const variant<Ts...>& rhs ) noexcept {
+    return lhs.swap( rhs );
+}
+
 }  // namespace wyne
 
 #endif

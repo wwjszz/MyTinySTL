@@ -264,11 +264,12 @@ private:
 
     struct Storage {
         union {
+            char       dummy;
             value_type value;
         };
         bool has_value;
 
-        constexpr Storage() noexcept : has_value( false ) {}
+        constexpr Storage() noexcept : dummy(), has_value( false ) {}
         constexpr ~Storage() noexcept { clear(); }
 
         constexpr void clear() noexcept {

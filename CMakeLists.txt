@@ -14,11 +14,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 
 include_directories(${PROJECT_SOURCE_DIR}/wyne)
 include_directories(/opt/homebrew/opt/googletest/include)
-include_directories(/opt/homebrew/opt/folly/include)
 
 find_package(GTest REQUIRED)
 # find_package(Boost CONFIG REQUIRED)
-find_package(Folly REQUIRED)
+# find_package(Folly REQUIRED)
 
 enable_testing()
 
@@ -26,7 +25,9 @@ enable_testing()
 add_executable(algo_test test/algo_test.cpp)
 add_executable(vector_test test/vector_test.cpp)
 add_executable(optional_test test/optional_test.cpp)
+add_executable(variant_test test/variant_test.cpp)
 
-target_link_libraries(algo_test  GTest::GTest GTest::Main Folly::folly)
+target_link_libraries(algo_test  GTest::GTest GTest::Main)
 target_link_libraries(vector_test GTest::GTest GTest::Main)
 target_link_libraries(optional_test GTest::GTest GTest::Main)
+target_link_libraries(variant_test GTest::GTest GTest::Main)
