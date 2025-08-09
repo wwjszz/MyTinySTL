@@ -880,10 +880,6 @@ class variant {
 
     static_assert( wyne::all<!std::is_void_v<Ts>...>, "variant can not have a void type as an alternative." );
 
-    // ~variant opreator=
-
-    // variant(in_place_index_t<I>,std::initializer_list<Up> il,Args &&...args)
-    // variant(in_place_type_t<T>,Args &&...args) variant(in_place_type_t<T>,std::initializer_list<Up> il,Args &&...args)
 public:
     template <default_constructible First = type_pack_element_t<0, Ts...>>
     constexpr variant() noexcept( std::is_nothrow_default_constructible_v<First> ) : impl_( in_place_index_t<0>{} ) {}
