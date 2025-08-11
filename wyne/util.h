@@ -51,9 +51,9 @@ inline constexpr auto&& forward_like( U&& u ) noexcept {
     }
     else {
         if constexpr ( is_adding_const )
-            return std::move( std::as_const( u ) );
+            return wyne::move( std::as_const( u ) );
         else
-            std::move( u );
+            return wyne::move( u );
     }
 }
 

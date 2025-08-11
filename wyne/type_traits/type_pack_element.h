@@ -10,7 +10,7 @@ namespace wyne {
 
 template <std::size_t I, class T>
 struct indexed_type {
-    static constexpr std::size_t index = I;
+    static constexpr std::size_t value = I;
     using type                         = T;
 };
 

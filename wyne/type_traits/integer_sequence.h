@@ -30,8 +30,8 @@ template <class, class>
 struct make_index_sequence_concat;
 
 template <std::size_t... Lhs, std::size_t... Rhs>
-struct make_index_sequence_concat<index_sequence<Lhs...>, index_sequence<Rhs...>>
-    : identity<index_sequence<Lhs..., ( sizeof...( Lhs ) + Rhs )...>> {};
+struct make_index_sequence_concat<index_sequence<Lhs...>, index_sequence<Rhs...>> : identity<index_sequence<Lhs..., ( sizeof...( Lhs ) + Rhs )...>> {
+};
 
 template <std::size_t N>
 struct make_index_sequence_impl;
@@ -40,8 +40,7 @@ template <std::size_t N>
 using make_index_sequence = typename make_index_sequence_impl<N>::type;
 
 template <std::size_t N>
-struct make_index_sequence_impl
-    : make_index_sequence_concat<make_index_sequence<N / 2>, make_index_sequence<N - N / 2>> {};
+struct make_index_sequence_impl : make_index_sequence_concat<make_index_sequence<N / 2>, make_index_sequence<N - N / 2>> {};
 
 template <>
 struct make_index_sequence_impl<0> : identity<index_sequence<>> {};

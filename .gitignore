@@ -15,3 +15,5 @@ bin/
 wyne/memory/temp_value.h
 
 Makefile
+
+build.ninja
