@@ -7,7 +7,6 @@
 #include <exception>
 #include <functional>
 #include <initializer_list>
-#include <iostream>
 #include <limits>
 #include <memory>
 #include <type_traits>
@@ -60,10 +59,8 @@ namespace wyne {
         DEFAULT( B + 32 );                 \
     }
 
-// TODO: cpp standard > 11
 #define WYNE_INHERITING_CTOR( type, base ) using base::base;
 
-// bad variant access
 class bad_variant_access : public std::exception {
 public:
     virtual const char* what() const noexcept override { return "bad variant access"; }
@@ -71,7 +68,6 @@ public:
 
 [[noreturn]] inline void throw_bad_variant_access() { throw bad_variant_access(); }
 
-// variant_size
 template <class T>
 struct variant_size;
 
@@ -122,7 +118,6 @@ struct variant_alternative<I, const volatile T> : add_cv<variant_alternative<I, 
 template <std::size_t I, class T>
 using variant_alternative_t = typename variant_alternative<I, T>::type;
 
-// T(From<Ts...>) -> To<Ts...>
 template <class T, template <class...> class To, class... Res>
 struct unpack_impl {};
 
@@ -136,8 +131,6 @@ using unpack_to = unpack_impl<T, To, Res...>::type;
 
 constexpr std::size_t variant_npos = static_cast<std::size_t>( -1 );
 
-// TODO: volatile ???
-
 namespace core {
 
     constexpr std::size_t not_found = static_cast<std::size_t>( -1 );
@@ -150,7 +143,7 @@ namespace core {
         for ( std::size_t i = 0; i < sizeof...( Ts ); ++i ) {
             if ( same[ i ] ) {
                 if ( result != not_found ) {
-                    return ambiguous;  // found more than one
+                    return ambiguous;
                 }
                 result = i;
             }
@@ -255,7 +248,6 @@ namespace core {
     }  // namespace access
 
     namespace visitation {
-        //  HACK: ITs contains reference?
         template <class Ret, class F, class... ITs>
         concept dispatch_return_check =
             wyne::return_as<Ret, F, decltype( access::base::get_alt<ITs::value>( std::declval<typename ITs::type>() ) )...>;
@@ -315,14 +307,13 @@ namespace core {
 
                 template <std::size_t B, class F, class Bt, class... Bs>
                 static constexpr Ret dispatch( F&& f, typename ITs::type&&... visited_bs, Bt&& b, Bs&&... bs ) {
-                    // TODO: V::size() -> std::decay_t<V>::size() ?
-                    // HACK: std::decay_t
-#define WYNE_DISPATCH( I )                                                                                \
-    dispatcher<( I < std::decay_t<Bt>::size() ), Ret, ITs..., indexed_type<I, Bt>>::template dispatch<0>( \
+                    // XXX: std::remove_reference_t -> std::decay?
+#define WYNE_DISPATCH( I )                                                                                           \
+    dispatcher<( I < std::remove_reference_t<Bt>::size() ), Ret, ITs..., indexed_type<I, Bt>>::template dispatch<0>( \
         wyne::forward<F>( f ), wyne::forward<typename ITs::type>( visited_bs )..., wyne::forward<Bt>( b ), wyne::forward<Bs>( bs )... )
 
-#define WYNE_DEFAULT( I )                                                            \
-    dispatcher<( I < std::decay_t<Bt>::size() ), Ret, ITs...>::template dispatch<I>( \
+#define WYNE_DEFAULT( I )                                                                       \
+    dispatcher<( I < std::remove_reference_t<Bt>::size() ), Ret, ITs...>::template dispatch<I>( \
         wyne::forward<F>( f ), wyne::forward<typename ITs::type>( visited_bs )..., wyne::forward<Bt>( b ), wyne::forward<Bs>( bs )... )
 
 #define WYNE_CASE( I ) \
@@ -375,7 +366,6 @@ namespace core {
         };
 
         struct alt {
-            // TODO: Why use decltype(auto)
             // Is: Impl
             template <class Visitor, class... Is>
             static constexpr WYNE_DECLTYPE_AUTO visit_alt( Visitor&& visitor, Is&&... is )
@@ -389,32 +379,25 @@ namespace core {
                     index, wyne::forward<Visitor>( visitor ), wyne::forward<Is>( is )... ) );
         };
 
-        // variant
         struct variant {
-            // check
             template <class Visitor, class... Args>
             struct visit_exhaustiveness_check {
-                // static_assert( std::is_same_v<Visitor, int>, "" );
-                // static_assert( ( std::is_class_v<Args> && ... ), "" );
-                // static_assert( std::is_empty_v<Args...>, "" );
                 static_assert( std::invocable<Visitor, Args...>, "`visit` requires the visitor to be exhaustive." );
                 static constexpr WYNE_DECLTYPE_AUTO invoke( Visitor&& visitor, Args&&... args )
                     WYNE_NOEXCEPT_RETURN( std::invoke( wyne::forward<Visitor>( visitor ), wyne::forward<Args>( args )... ) );
             };
 
-            // value_visitor
             template <class Visitor>
             struct value_visitor {
                 Visitor&& visitor_;
 
                 template <class... Alts>
                 constexpr WYNE_DECLTYPE_AUTO operator()( Alts&&... alts ) const
-                    // HACK: must be decltype( ( wyne::forward<Alts>( alts ).value ) ), double brackets
+                    // XXX: must be decltype( ( wyne::forward<Alts>( alts ).value ) ), double brackets
                     WYNE_NOEXCEPT_RETURN( visit_exhaustiveness_check<Visitor, decltype( ( wyne::forward<Alts>( alts ).value ) )...>::invoke(
                         wyne::forward<Visitor>( visitor_ ), wyne::forward<Alts>( alts ).value... ) );
             };
 
-            // make_value_visitor
             template <class Visitor>
             static constexpr WYNE_DECLTYPE_AUTO make_value_visitor( Visitor&& visitor )
                 WYNE_NOEXCEPT_RETURN( value_visitor<Visitor>{ wyne::forward<Visitor>( visitor ) } );
@@ -439,7 +422,6 @@ namespace core {
 
     }  // namespace visitation
 
-    // alt
     template <std::size_t I, class T>
     struct alt;
 
@@ -457,20 +439,18 @@ namespace core {
         using value_type = T;
 
         template <class... Args>
-        // std::is_nothrow_constructible_v<T, Args...> 与 Args&&...
         constexpr alt( in_place_t, Args&&... args ) noexcept( std::is_nothrow_constructible_v<T, Args...> )
             : value( wyne::forward<Args>( args )... ) {}
 
         T value;
     };
 
-    // recursive_union
     template <Trait DestructibleTrait, std::size_t Index, class... Ts>
     union recursive_union;
 
     template <Trait DestructibleTrait, std::size_t Index>
     union recursive_union<DestructibleTrait, Index> {
-        // TODO: UNREACHABLE
+        // nothing
     };
 
 #define WYNE_RECURSIVE_UNION( destructible_trait, destructor )                                                                                   \
@@ -517,10 +497,10 @@ namespace core {
     concept is_base = is_base_template<std::remove_cvref_t<T>>::value;
 
     template <class T>
-    // HACK: const base&
-    concept convertible_to_base = requires( T t ) { []<Trait DestructibleTrait, class... Ts>( const base<DestructibleTrait, Ts...>& ) {}( t ); };
+    // XXX: const base&
+    concept convertible_to_base =
+        requires( T&& t ) { []<Trait DestructibleTrait, class... Ts>( const base<DestructibleTrait, Ts...>& ) {}( wyne::forward<T>( t ) ); };
 
-    // index_t
     template <class... Ts>
     using index_t =
         std::conditional_t<sizeof...( Ts ) < std::numeric_limits<unsigned char>::max(), unsigned char,
@@ -658,7 +638,6 @@ namespace core {
 
     WYNE_MOVE_CONSTRUCTOR( Trait::TriviallyAvailable, move_constructor( move_constructor&& ) = default; );
 
-    // TODO: figure out: template <bool... Bs> using all = std::is_same<integer_sequence<bool, true, Bs...>, integer_sequence<bool, Bs..., true>>;
     WYNE_MOVE_CONSTRUCTOR(
         Trait::Available,
         move_constructor( move_constructor&& that ) noexcept( wyne::all<std::is_nothrow_move_constructible_v<Ts>...> ) : move_constructor(
@@ -708,10 +687,8 @@ namespace core {
         using super::operator=;
 
         template <std::size_t I, class... Args>
-        // HACK: fix bugs
         constexpr decltype( auto ) emplace( Args&&... args ) {
             this->destroy();
-            // TODO: handle exception
             auto& result = this->construct_alt( access::base::get_alt<I>( *this ), wyne::forward<Args>( args )... );
 
             this->index_ = I;
@@ -725,6 +702,7 @@ namespace core {
                 a.value = wyne::forward<Arg>( arg );
             }
             else {
+                // XXX
                 // if constexpr ( std::is_nothrow_constructible_v<T, Args> ) {
                 // this->emplace<I>( wyne::forward<Args>( args ) );
                 struct {
@@ -848,14 +826,14 @@ namespace core {
                 visitation::alt::visit_alt_at(
                     this->index_,
                     []( auto& lhs_alt, auto& rhs_alt ) {
-                        // HACK: conflicts between wyne::swap and std::swap
+                        // XXX: conflicts between wyne::swap and std::swap
                         using wyne::swap;
                         swap( lhs_alt.value, rhs_alt.value );
                     },
                     *this, that );
             }
             else {
-                // TODO: Exception
+                // XXX: exception
                 impl temp( wyne::move( that ) );
                 this->generic_construct( that, wyne::move( *this ) );
                 this->generic_construct( *this, wyne::move( temp ) );
@@ -938,12 +916,6 @@ namespace core {
     template <class T>
     concept is_in_place_type = is_in_place_type_impl<T>::value;
 
-    // static_assert( std::same_as<size_constant<0>, best_match<int, long long>> );
-
-    // static_assert( convert_without_narrowing<bool, int> );
-
-    // static_assert( convertible_to_base<assignment<traits<int>>>, "" );
-
 }  // namespace core
 
 template <class... Ts>
@@ -965,7 +937,7 @@ public:
 
     template <class Arg, class Decay = std::decay_t<Arg>, std::enable_if_t<!std::is_same_v<variant, Decay>, int> = 0,
               std::enable_if_t<!core::is_in_place_index<Decay>, int> = 0, std::enable_if_t<!core::is_in_place_type<Decay>, int> = 0,
-              // HACK: must be best_match, not best_match_v
+              // FIXME: must be best_match, not best_match_v
               std::size_t I = core::best_match<Arg, Ts...>::value, class T = type_pack_element_t<I, Ts...>>
     constexpr variant( Arg&& arg ) noexcept( std::is_nothrow_constructible_v<T, Arg> ) : impl_( in_place_index_t<I>{}, wyne::forward<Arg>( arg ) ) {}
 
@@ -975,7 +947,6 @@ public:
 
     template <std::size_t I, class U, class... Args, constructible<std::initializer_list<U>, Args...> T = type_pack_element_t<I, Ts...>>
     constexpr variant( in_place_index_t<I>, std::initializer_list<U> il,
-                       // TODO: std::initializer_list<U> -> std::initializer_list<U>& ?
                        Args&&... args ) noexcept( std::is_nothrow_constructible_v<T, std::initializer_list<U>, Args...> )
         : impl_( in_place_index_t<I>{}, il, wyne::forward<Args>( args )... ) {}
 
@@ -995,7 +966,6 @@ public:
     variant& operator=( const variant& ) = default;
     variant& operator=( variant&& )      = default;
 
-    //  HACK: fix bugs
     template <class Arg, std::enable_if_t<!std::is_same_v<variant, std::decay_t<Arg>>, int> = 0, std::size_t I = core::best_match<Arg, Ts...>::value,
               class T = type_pack_element_t<I, Ts...>>
         requires assignable<T, Arg>

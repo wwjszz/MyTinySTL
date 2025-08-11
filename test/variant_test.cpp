@@ -1,3 +1,4 @@
+#include "util.h"
 #include "variant.h"
 
 #include <gtest/gtest.h>
@@ -740,6 +741,14 @@ TEST( Swap, Same ) {
     // Swap.
     using wyne::swap;
     swap( v, w );
+    {
+        wyne::variant<int, std::string> v( 1 );
+        wyne::variant<int, std::string> w( 2 );
+        std::cout << "begin :   " << std::endl;
+        using wyne::swap;
+        swap( v, w );
+        std::cout << "begin :   " << std::endl;
+    }
     // Check `v`.
     EXPECT_EQ( "world", wyne::get<std::string>( v ) );
     // Check `w`.
@@ -837,7 +846,7 @@ struct Obj {
 inline void swap( detail::Obj& lhs, detail::Obj& rhs ) {
     // std::cout << "lhs.dtor_count_ " << *lhs.dtor_count_ << std::endl;
     // std::cout << "rhs.dtor_count_ " << *rhs.dtor_count_ << std::endl;
-    wyne::swap( lhs.dtor_count_, rhs.dtor_count_ );
+    std::swap( lhs.dtor_count_, rhs.dtor_count_ );
 }
 
 // std::ostream& operator<<( std::ostream& os, const Obj& obj ) noexcept { return os << *( obj.dtor_count_ ); }
